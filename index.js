@@ -20,6 +20,7 @@ import neighbordhoodRoutes from "./routes/neighbordhoodRoutes.js";
 
 dotenv.config({ path: "config.env" });
 const app = express();
+app.set("trust proxy", 1);
 
 const limiter = rateLimit({
     windowMs: 60 * 30 * 1000,
