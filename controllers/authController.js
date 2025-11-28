@@ -1,0 +1,99 @@
+import { asyncWrapperMiddleware } from "../middleware/asyncWrapperMiddleware.js";
+import { User } from "../models/User.js";
+import { notFoundError } from "../util/ErrorsMessages.js";
+import jwt from "jsonwebtoken";
+
+const cookieOptions = {
+    expiresIn: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 1000 * 60 * 60 * 24),
+    secure: false,
+    httpOnly: true,
+    // sameSite: "strict",
+}
+
+export const login = asyncWrapperMiddleware(async (req, res, next) => {
+    const { userName, password } = req.body
+
+    if (!userName || !password) {
+        return next({ statusCode: 400, status: "fiald", message: "ادخل اسم المستخدم وكلمة المرور!" })
+    }
+
+    const user = await User.findOne({ userName }).select("+password");
+
+    if (!user) {
+        return next({ statusCode: 404, status: "failed", message: notFoundError("المستخدم") });
+    }
+
+    // const isMatch = await compare(password, user.password)
+    if (!user || !await user.correctPassword(password)) {
+        return next({
+            statusCode: 401,
+            status: "failed",
+            message: "اسم المستخدم أو كلمة المرور غير صحيحة!",
+        });
+    }
+
+    if (user.isLogining) {
+        if (user.userAgent !== req.headers['user-agent']) {
+            return next({
+                statusCode: 403,
+                status: "failed",
+                message: "المستخدم مسجل الدخول من جهاز آخر. يرجى تسجيل الخروج أولاً!",
+            });
+        }
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: 1980 })
+    const { _id, name, phone, role, region, project } = user
+
+    await User.updateOne({ _id }, { isLogining: true, userAgent: req.headers['user-agent'] })
+
+    res.cookie("jwt_access_token", token, cookieOptions)
+
+    res.status(200).json({
+        status: "success",
+        statusCode: 200,
+        message: "تم تسجيل الدخول بنجاح.",
+        data: {
+            token,
+            user: { name, phone, role, region, project }
+        }
+    });
+})
+
+export const logout = asyncWrapperMiddleware(async (req, res) => {
+    await User.updateOne({ _id: req.user._id }, { isLogining: false })
+
+    res.status(200).json({
+        status: "success",
+        statusCode: 200,
+        message: "تم تسجيل الخروج بنجاح.",
+    });
+})
+
+// export const getUserDataWithAdmin = asyncWrapperMiddleware(async (req, res, next) => {
+//     if (req.body.secretKey !== process.env.SECRET_KEY_PASS) {
+//         return next({ statusCode: 403, status: "forbiddin", message: "ليس لديك حق الوصول الى هذا المورد" })
+//     }
+//     const user = await User.findById(req.params.id).select("+password");
+//     if (!user) {
+//         return next({ statusCode: 404, status: "failed", message: notFoundError("المستخدم") });
+//     }
+
+//     const isMatch = await user.correctPassword(user)
+//     if (!isMatch) {
+//         return next({
+//             statusCode: 401,
+//             status: "failed",
+//             message: "كلمة المرور غير صحيحة!",
+//         });
+//     }
+
+//     res.status(200).json({
+//         status: "success",
+//         statusCode: 200,
+//         message: "تم الامر بنجاح.",
+//         data: {
+//             user
+//         }
+//     });
+// })
