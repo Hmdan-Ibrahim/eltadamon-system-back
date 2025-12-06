@@ -132,20 +132,10 @@ export async function gitReports(req, res) {
       }
     },
     { $unwind: { path: "$vehicleInfo", preserveNullAndEmptyArrays: true } },
-    // {
-    //   $lookup: {
-    //     from: "users",
-    //     localField: "_id.supervisor",
-    //     foreignField: "_id",
-    //     as: "supervisorInfo",
-    //   },
-    // },
-    // { $unwind: { path: "$supervisorInfo", preserveNullAndEmptyArrays: true } },
     {
       $project: {
         _id: 0,
-        transporter: "$transporterInfo.name",
-        trip: "$transporterInfo.trip",
+        transporter: "$transporterInfo",
         school: "$schoolInfo.name",
         supervisor: "$supervisorInfo.name",
         RequiredCapacity: "$_id.RequiredCapacity",
@@ -191,7 +181,7 @@ export async function gitReports(req, res) {
     status: "success",
     statusCode: 200,
     message: SuccessGetMessage("التقارير"),
-    result: reports[0].length,
+    result: reports[0]?.length || 0,
     data: reports[0]
   });
 }
