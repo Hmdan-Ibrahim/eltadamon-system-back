@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { DailyOrder } from "../models/DailyOrder.js";
 import { getDaysInMonth } from "../util/functions.js";
 import { StatusOrder as status } from "../util/StatusOrder.js";
-
+import { SuccessGetMessage } from "../util/SuccessMessages.js";
 const Model = DailyOrder
 
 export async function gitReports(req, res) {
