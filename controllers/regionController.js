@@ -1,4 +1,5 @@
 import { Region } from "../models/Region.js";
+import { getCountDocs } from "../util/apiFeatures/getCountDocs.js";
 import { createModel } from "../util/crudModels/createModel.js";
 import { deleteModel } from "../util/crudModels/deleteModel.js";
 import { getAllModels } from "../util/crudModels/getAllModels.js";
@@ -20,6 +21,7 @@ const createRegion = createModel((req) => {
     }
 })
 
+const getCountRegionDocs = getCountDocs(Region, "عدد المناطق", async (req) => { })
 const getAllRegions = getAllModels(Region, "جميع المناطق", populates)
 const getRegion = getModel(Region, ModelName, notFoundError2(ModelName))
 const updateRegion = updateModel(Region, ModelName, notFoundError2(ModelName))
@@ -27,6 +29,7 @@ const deleteRegion = deleteModel(Region, ModelName, notFoundError2(ModelName))
 
 export {
     createRegion,
+    getCountRegionDocs,
     getAllRegions,
     getRegion,
     updateRegion,

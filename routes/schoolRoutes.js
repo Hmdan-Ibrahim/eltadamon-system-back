@@ -1,15 +1,25 @@
 import { Router } from "express";
-import { createSchool, deleteSchool, getAllSchools, getSchool, updateSchool } from "../controllers/schoolController.js";
+import { protect } from '../middleware/protect.js';
+import {
+    createSchool,
+    deleteSchool,
+    getAllSchools,
+    getSchool,
+    getCountSchoolDocs,
+    updateSchool,
+} from "../controllers/schoolController.js";
 
 const schoolRoutes = Router();
 
-schoolRoutes.route("/")
+schoolRoutes.use(protect);
+schoolRoutes
+    .route("/")
     .get(getAllSchools)
-    // .post(createUserValidator, createUser)
-    .post(createSchool)
-
-schoolRoutes.route("/:id").get(getSchool)
-    // .patch(updateUserValidator, updateUser)
+    .post(createSchool);
+schoolRoutes.get("/count", getCountSchoolDocs);
+schoolRoutes
+    .route("/:id")
+    .get(getSchool)
     .patch(updateSchool)
     .delete(deleteSchool);
 

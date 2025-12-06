@@ -33,7 +33,7 @@ const UserSchema = new Schema({
   },
   trip: {
     type: Number,
-    required: [function () { return [Roles.DRIVER].includes(this.role) }, "لابد من تحديد الدور الوظيفي"],
+    required: [function () { return (this.role == Roles.DRIVER) }, "لابد من تحديد الترب الخاص بالسائق!"],
   },
   region: {
     type: Schema.Types.ObjectId,
@@ -51,6 +51,7 @@ const UserSchema = new Schema({
     }, `يجب تحديد المشروع للمستخدم`]
   },
   userAgent: String,
+  deviceIp: String,
   isLogining: Boolean
 }, { timestamps: true });
 
@@ -63,10 +64,13 @@ UserSchema.pre("save", async function (next) {
       return next({ statusCode: 404, status: "failed", message: notFoundError2("المنطقة") });
     }
 
-    if (region.manager || region.manager === "") {
+    if (region.manager && this.role === Roles.REGION_MANAGER) {
       return next({ statusCode: 404, status: "fiald", message: "هذه المنطقة لديها مدير بالفعل!" });
     }
-    await Region.updateOne({ _id: this.region }, { manager: this._id })
+    if (this.role === Roles.REGION_MANAGER) {
+      await Region.updateOne({ _id: this.region }, { manager: this._id });
+    }
+
   }
 
   if (this.project) {
@@ -79,7 +83,9 @@ UserSchema.pre("save", async function (next) {
     if (project.manager && this.role === Roles.PROJECT_MANAGER) {
       return next({ statusCode: 404, status: "fiald", message: "هذا المشروع لديه مدير بالفعل!" });
     }
-    await Project.updateOne({ _id: this.project }, { manager: this._id })
+    if (this.role === Roles.PROJECT_MANAGER) {
+      await Project.updateOne({ _id: this.project }, { manager: this._id });
+    }
   }
 
   if (!this.isModified("password")) return next();

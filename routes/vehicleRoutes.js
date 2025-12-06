@@ -1,15 +1,24 @@
 import { Router } from "express";
-import { createVehicle, deleteVehicle, getAllVehicles, getVehicle, updateVehicle } from "../controllers/vehicleController.js";
+import { protect } from '../middleware/protect.js';
+import {
+    createVehicle,
+    deleteVehicle,
+    getAllVehicles,
+    getVehicle,
+    getCountVehicleDocs,
+    updateVehicle,
+} from "../controllers/vehicleController.js";
 
 const vehicleRoutes = Router();
-
-vehicleRoutes.route("/")
+vehicleRoutes.use(protect);
+vehicleRoutes
+    .route("/")
     .get(getAllVehicles)
-    // .post(createUserValidator, createUser)
     .post(createVehicle);
-
-vehicleRoutes.route("/:id").get(getVehicle)
-    // .patch(updateUserValidator, updateUser)
+vehicleRoutes.get("/count", getCountVehicleDocs);
+vehicleRoutes
+    .route("/:id")
+    .get(getVehicle)
     .patch(updateVehicle)
     .delete(deleteVehicle);
 

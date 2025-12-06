@@ -8,17 +8,17 @@ import { restrictTo } from "../middleware/restrictTo.js";
 const userRoutes = Router();
 
 userRoutes.post("/auth/login", login)
-userRoutes.post("/auth/logout", protect, logout)
-userRoutes.patch("/auth/change/userData/:id", updateUser)
+userRoutes.use(protect)
+userRoutes.post("/auth/logout", logout)
+userRoutes.patch("/auth/change/userData/:id", restrictTo(Roles.MANAGER), updateUser)
 userRoutes.route("/")
-    // .get(protect, getAllUsers)
     .get(getAllUsers)
-    // .post(createUserValidator, createUser)
-    .post(createUser)
+    // .get(getAllUsers)
+    .post(restrictTo(Roles.MANAGER), createUser)
 
 userRoutes.route("/:id").get(getUser)
     // .patch(updateUserValidator, updateUser)
     // .patch(protect, restrictTo(Roles.MANAGER), updateUser)
-    .delete(protect, restrictTo(Roles.MANAGER), deleteUser);
+    .delete(restrictTo(Roles.MANAGER), deleteUser);
 
 export default userRoutes;

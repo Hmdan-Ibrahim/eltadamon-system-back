@@ -21,11 +21,7 @@ const populates = [
     { path: "well", select: "name" },
 ];
 
-// const createDailyOrder = createModel(reqq => ({
-//     Model, ModelName,
-//     foundErrorMessage: foundError(ModelName),
-//     reqBody: reqq.body,
-// }))
+
 const createDailyOrder = (req, res, next) => {
     const isCollection = Array.isArray(req.body)
 
@@ -68,9 +64,9 @@ const createDailyOrder = (req, res, next) => {
 const getAllDailyOrders = getAllModels(Model, "الطلبات", populates)
 
 const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
-    const projectId = new Types.ObjectId(req.params.projectId);
-    const userId = req.user._id;           // المستخدم الحالي
-    const userRole = req.user.role;        // دوره، مثل "supervisor"
+    const projectId = new Types.ObjectId(req.params.projectId) || user?.project;
+    const userId = req.user._id;
+    const userRole = req.user.role;
     const date = new Date(req.query.sendingDate);
     // if (isNaN(date)) {
     //     return res.status(400).json({
@@ -78,9 +74,10 @@ const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
     //         message: "المدخل الخاص بالتاريخ غير صالح"
     //     });
     // }
-    const start = new Date(date.setHours(0, 0, 0, 0));
-    const end = new Date(date.setHours(23, 59, 59, 999));
-
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
     // ========== إعداد pipeline ==========
     const schoolMatchPipeline = [
         { $match: { $expr: { $eq: ["$_id", "$$schoolId"] } } },
@@ -196,7 +193,7 @@ const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
     res.status(200).json({
         status: "success",
         statusCode: 200,
-        message: "(ModelsName)",
+        message: "تم جلب الطلبات بنجاح",
         result: dailyOrders.length,
         data: dailyOrders
     });
@@ -215,38 +212,3 @@ export {
     deleteDailyOrder,
     getDailyOrdersByProject
 }
-
-
-// async (req, res) => {
-//     try {
-//         const order = new DailyOrder(req.body);
-//         await order.save();
-//         res.status(201).json(order);
-//     } catch (err) {
-//         res.status(400).json({ error: err.message });
-//     }
-// }
-
-// const getAllDailyOrders = async (req, res) => {
-//     try {
-//         const { school, driver, operator, startDate, endDate } = req.query;
-//         const filter = {};
-//         if (school) filter.school = school;
-//         if (driver) filter.driver = driver;
-//         if (operator) filter.operator = operator;
-//         if (startDate || endDate) filter.createdAt = {};
-//         if (startDate) filter.createdAt.$gte = new Date(startDate);
-//         if (endDate) filter.createdAt.$lte = new Date(endDate);
-
-//         const orders = await DailyOrder.find(filter)
-//             .populate("school")
-//             .populate("driver")
-//             .populate("supervisor")
-//             .populate("vehicle")
-//             .populate("well");
-
-//         res.json(orders);
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// }

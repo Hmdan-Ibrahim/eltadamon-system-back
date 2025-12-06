@@ -13,6 +13,12 @@ const cookieOptions = {
 export const login = asyncWrapperMiddleware(async (req, res, next) => {
     const { userName, password } = req.body
 
+    const ip =
+        req.headers["x-forwarded-for"]?.split(",")[0] || // إذا السيرفر خلف بروكسي
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.connection?.socket?.remoteAddress;
+
     if (!userName || !password) {
         return next({ statusCode: 400, status: "fiald", message: "ادخل اسم المستخدم وكلمة المرور!" })
     }
@@ -23,7 +29,6 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
         return next({ statusCode: 404, status: "failed", message: notFoundError("المستخدم") });
     }
 
-    // const isMatch = await compare(password, user.password)
     if (!user || !await user.correctPassword(password)) {
         return next({
             statusCode: 401,
@@ -33,7 +38,10 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
     }
 
     if (user.isLogining) {
-        if (user.userAgent !== req.headers['user-agent']) {
+        if (
+            user.userAgent !== req.headers["user-agent"] ||
+            user?.deviceIp != ip
+        ) {
             return next({
                 statusCode: 403,
                 status: "failed",
@@ -45,7 +53,7 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: 1980 })
     const { _id, name, phone, role, region, project } = user
 
-    await User.updateOne({ _id }, { isLogining: true, userAgent: req.headers['user-agent'] })
+    await User.updateOne({ _id }, { isLogining: true, userAgent: req.headers['user-agent'], deviceIp: ip })
 
     res.cookie("jwt_access_token", token, cookieOptions)
 
@@ -69,31 +77,3 @@ export const logout = asyncWrapperMiddleware(async (req, res) => {
         message: "تم تسجيل الخروج بنجاح.",
     });
 })
-
-// export const getUserDataWithAdmin = asyncWrapperMiddleware(async (req, res, next) => {
-//     if (req.body.secretKey !== process.env.SECRET_KEY_PASS) {
-//         return next({ statusCode: 403, status: "forbiddin", message: "ليس لديك حق الوصول الى هذا المورد" })
-//     }
-//     const user = await User.findById(req.params.id).select("+password");
-//     if (!user) {
-//         return next({ statusCode: 404, status: "failed", message: notFoundError("المستخدم") });
-//     }
-
-//     const isMatch = await user.correctPassword(user)
-//     if (!isMatch) {
-//         return next({
-//             statusCode: 401,
-//             status: "failed",
-//             message: "كلمة المرور غير صحيحة!",
-//         });
-//     }
-
-//     res.status(200).json({
-//         status: "success",
-//         statusCode: 200,
-//         message: "تم الامر بنجاح.",
-//         data: {
-//             user
-//         }
-//     });
-// })

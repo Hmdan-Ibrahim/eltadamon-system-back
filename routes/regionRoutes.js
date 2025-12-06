@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createRegion, deleteRegion, getAllRegions, getRegion, updateRegion } from '../controllers/regionController.js';
+import { createRegion, deleteRegion, getAllRegions, getRegion, getCountRegionDocs, updateRegion } from '../controllers/regionController.js';
 import { protect } from '../middleware/protect.js';
 import { restrictTo } from '../middleware/restrictTo.js';
 import { Roles } from '../util/Roles.js';
@@ -9,7 +9,7 @@ regionRoutes.use(protect, restrictTo(Roles.MANAGER))
 regionRoutes.route('/')
     .post(createRegion)
     .get(getAllRegions);
-
+regionRoutes.get('/count', getCountRegionDocs)
 regionRoutes.route('/:id')
     .get(restrictTo(Roles.REGION_MANAGER), getRegion)
     .patch(updateRegion)

@@ -36,7 +36,12 @@ app.use("/api", limiter);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors())
+app.use(cors({
+    origin: [
+        "https://altadamon-system.vercel.app"
+    ],
+    credentials: true
+}))
 
 // app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
