@@ -50,6 +50,10 @@ const UserSchema = new Schema({
       return ([Roles.PROJECT_MANAGER, Roles.SUPERVISOR, Roles.DRIVER, Roles.CONTRACTOR].includes(this.role))
     }, `يجب تحديد المشروع للمستخدم`]
   },
+  accountNumber: {
+    type: String,
+    unique: [true, "رقم الحساب لابد أن يكون فريداً!"]
+  },
   userAgent: String,
   deviceIp: String,
   isLogining: Boolean
