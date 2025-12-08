@@ -54,6 +54,21 @@ export async function gitReports(req, res) {
           day: { $dateToString: { format: "%Y-%m-%d", date: "$sendingDate" } },
           operator: "$operator",
           vehicle: "$vehicle",
+          operator: {
+            $cond: [
+              { $eq: [groupBy, "transporter"] },
+              "$operator",
+              null
+            ]
+          },
+    
+          vehicle: {
+            $cond: [
+              { $eq: [groupBy, "transporter"] },
+              "$vehicle",
+              null
+            ]
+          },
           replyPrice: "$replyPrice",
         },
         totalPrice: { $sum: "$replyPrice" },
