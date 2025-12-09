@@ -63,7 +63,7 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
         message: "تم تسجيل الدخول بنجاح.",
         data: {
             token,
-            user: { name, phone, role, region, project }
+            user: { _id, name, phone, role, region, project }
         }
     });
 })
