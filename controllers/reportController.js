@@ -3,15 +3,18 @@ import { DailyOrder } from "../models/DailyOrder.js";
 import { getDaysInMonth } from "../util/functions.js";
 import { StatusOrder as status } from "../util/StatusOrder.js";
 import { SuccessGetMessage } from "../util/SuccessMessages.js";
+
 const Model = DailyOrder
 
 export async function gitReports(req, res) {
 
   const { project, groupBy = "transporter", sendingDate, StatusOrder = status.IMPLEMENTED } = req.query
+  const projectId = new mongoose.Types.ObjectId(project);
+
   const year = new Date(sendingDate).getFullYear()
   const month = new Date(sendingDate).getMonth() + 1
   const numDays = getDaysInMonth(new Date(sendingDate).getFullYear(), month)
-  const projectId = new mongoose.Types.ObjectId(project);
+
   const start = new Date(`${year}-${month}`);
   const end = new Date(`${year}-${month}-${numDays}`);
 
@@ -25,6 +28,10 @@ export async function gitReports(req, res) {
 
   // الافتراضي لو لم يتم إرسال groupBy
   const groupField = groupFieldsMap[groupBy] || "$transporter";
+
+  // نحدد هل نعرض operator - vehicle - price
+  const includeExtraFields = groupBy === "transporter";
+
   const reports = await Model.aggregate([
     {
       $match: {
@@ -52,28 +59,40 @@ export async function gitReports(req, res) {
           groupBy: groupField,
           RequiredCapacity: "$RequiredCapacity",
           day: { $dateToString: { format: "%Y-%m-%d", date: "$sendingDate" } },
-          operator: "$operator",
-          vehicle: "$vehicle",
-          operator: {
-            $cond: [
-              { $eq: [groupBy, "transporter"] },
-              "$operator",
-              null
-            ]
-          },
-    
-          vehicle: {
-            $cond: [
-              { $eq: [groupBy, "transporter"] },
-              "$vehicle",
-              null
-            ]
-          },
-          replyPrice: "$replyPrice",
+          // operator: "$operator",
+          // vehicle: "$vehicle",
+          // replyPrice: "$replyPrice",
+
+          // operator: {
+          //   $cond: [
+          //     { $eq: [groupBy, "transporter"] },
+          //     "$operator",
+          //     null
+          //   ]
+          // },
+
+          // vehicle: {
+          //   $cond: [
+          //     { $eq: [groupBy, "transporter"] },
+          //     "$vehicle",
+          //     null
+          //   ]
+          // },
+          // replyPrice: {
+          //   $cond: [
+          //     { $eq: [groupBy, "transporter"] },
+          //     "$replyPrice",
+          //     null
+          //   ]
+          // },
+
+          operator: includeExtraFields ? "$operator" : null,
+          vehicle: includeExtraFields ? "$vehicle" : null,
+          replyPrice: includeExtraFields ? "$replyPrice" : null,
         },
         totalPrice: { $sum: "$replyPrice" },
         totalOrders: { $sum: 1 },
-        totalOrdersDone: { $sum: { $cond: [{ $ifNull: ["$executionTime", false] }, 1, 0] } },
+        // totalOrdersDone: { $sum: { $cond: [{ $ifNull: ["$executionTime", false] }, 1, 0] } },
         // totalAmount: { $sum: "$amount" },
         school: { $first: "$school" },
         supervisor: { $first: "$supervisor" },
@@ -87,9 +106,12 @@ export async function gitReports(req, res) {
         _id: {
           groupBy: "$_id.groupBy",
           RequiredCapacity: "$_id.RequiredCapacity",
-          operator: "$_id.operator",
-          vehicle: "$_id.vehicle",
-          replyPrice: "$_id.replyPrice",
+          // operator: "$_id.operator",
+          // vehicle: "$_id.vehicle",
+          // replyPrice: "$_id.replyPrice",
+          operator: includeExtraFields ? "$_id.operator" : null,
+          vehicle: includeExtraFields ? "$_id.vehicle" : null,
+          replyPrice: includeExtraFields ? "$_id.replyPrice" : null,
 
         },
         detailsOfDays: {
@@ -99,10 +121,9 @@ export async function gitReports(req, res) {
           }
         },
         monthlyOrders: { $sum: "$totalOrders" },
-        monthlyOrdersDone: { $sum: "$totalOrdersDone" },
-
-        totalPrice: { $sum: "$totalPrice" },
-
+        // monthlyOrdersDone: { $sum: "$totalOrdersDone" },
+        // totalPrice: { $sum: "$totalPrice" },
+        monthlyPrice: { $sum: "$totalPrice" },
 
         school: { $first: "$school" },
         supervisor: { $first: "$supervisor" },
@@ -157,25 +178,24 @@ export async function gitReports(req, res) {
         operator: "$_id.operator",
         vehicle: "$vehicleInfo.plateNumber",
         replyPrice: "$_id.replyPrice",
-        // replyPrice: 1,
         detailsOfDays: 1,
         monthlyOrders: 1,
-        monthlyOrdersDone: 1,
+        // monthlyOrdersDone: 1,
         totalCapacity: { $multiply: ["$monthlyOrders", "$_id.RequiredCapacity"] },
-        totalCapacityDone: { $multiply: ["$monthlyOrdersDone", "$_id.RequiredCapacity"] },
+        // totalCapacityDone: { $multiply: ["$monthlyOrdersDone", "$_id.RequiredCapacity"] },
 
         totalPrice: 1,
       }
     },
-    { $sort: { operator: 1, transporter: 1, RequiredCapacity: 1 } },
+    { $sort: { "operator": 1, "transporter.name": 1, "school": 1, "RequiredCapacity": 1 } },
     {
       $group: {
         _id: null,
         reports: { $push: "$$ROOT" },
         grandTotalOrders: { $sum: "$monthlyOrders" },
-        grandTotalOrdersDone: { $sum: "$monthlyOrdersDone" },
+        // grandTotalOrdersDone: { $sum: "$monthlyOrdersDone" },
         grandTotalCapacity: { $sum: "$totalCapacity" },
-        grandTotalCapacityDone: { $sum: "$totalCapacityDone" },
+        // grandTotalCapacityDone: { $sum: "$totalCapacityDone" },
         grandTotalPrice: { $sum: "$totalPrice" }
       }
     },
@@ -192,11 +212,13 @@ export async function gitReports(req, res) {
     }
   ])
 
+  console.log("groupField", reports[0]);
+
   res.status(200).json({
     status: "success",
     statusCode: 200,
     message: SuccessGetMessage("التقارير"),
-    result: reports[0]?.length || 0,
-    data: reports[0]
+    result: reports[0]?.reports?.length || 0,
+    data: reports[0] || {}
   });
 }
