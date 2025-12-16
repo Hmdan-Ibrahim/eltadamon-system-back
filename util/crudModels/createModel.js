@@ -1,5 +1,4 @@
 import { asyncWrapperMiddleware } from "../../middleware/asyncWrapperMiddleware.js";
-import { DailyOrder } from "../../models/DailyOrder.js";
 import { foundError, ServerErrorMessage } from "../ErrorsMessages.js";
 import { SuccessCreateMessage } from "../SuccessMessages.js";
 
