@@ -13,7 +13,7 @@ const DailyOrderSchema = new Schema({
     supervisor: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        // required: [true, "حدد المشرف الذي قام بالطلب!"]
+        required: [true, "حدد المشرف الذي قام بالطلب!"]
     },
     operator: {
         type: String,
@@ -23,30 +23,32 @@ const DailyOrderSchema = new Schema({
     transporter: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        // required: [true, "حدد الموصل!"]
+        required: [true, "حدد الموصل!"]
     },
     vehicle: {
         type: Schema.Types.ObjectId, ref: 'Vehicle',
-        required: function () {
+        required: [function () {
             return this.operator === Operators.altadhamun;
-        }
+        }, "حدد السيارة"]
     },
     RequiredCapacity: {
         type: Number,
-        required: function () {
+        required: [function () {
             return [Operators.contractor, Operators.purchases].includes(this.operator);
-        }
+        }, "حدد كمية الرد"]
     },
-    replyPrice: {       // التعريفة لكل رد
+    replyPrice: {   
         type: Number,
-        // required: function () {
-        //     return [Operators.contractor, Operators.purchases].includes(this.operator);
-        // }
+        required: [function () {
+             return [Operators.contractor, Operators.purchases].includes(this.operator);
+        }, "حدد سعر الرد"]
     },
     well: {
         type: Schema.Types.ObjectId,
         ref: 'Well',
-        // required: [true, "حدد نوع الطلب!"]
+        required: [function () {
+            return this.operator === Operators.altadhamun;
+        }, "حدد تحلية الطلب!"]
     },
     status: { type: String, enum: [StatusOrder.NOT_IMPLEMENTED, StatusOrder.IMPLEMENTED], default: "لم ينفذ" },     // محسوب تلقائيًا = deliveredVolumeTon * replyPrice
     sendingDate: {
@@ -64,7 +66,6 @@ const DailyOrderSchema = new Schema({
 
 DailyOrderSchema.pre("save", async function (next) {
     try {
-        // تعيين default من vehicle.capacity إذا لم يُعطَ
         if (!this.RequiredCapacity && this.vehicle) {
             const vehicle = await Vehicle.findById(this.vehicle);
             if (vehicle) {
@@ -78,6 +79,50 @@ DailyOrderSchema.pre("save", async function (next) {
 
             this.replyPrice = this.RequiredCapacity * well.pricePerUnit;
         }
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
+
+DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAndUpdate)/i, async function (next) {
+    try {
+
+        const update = this.getUpdate();
+        const query = this.getQuery();
+
+        const currentDoc = await this.model.findOne(query);
+        if (!currentDoc) return next();
+
+        const newVehicleId = update.vehicle || update.$set?.vehicle || currentDoc.vehicle;
+        const newOperator = update.operator || update.$set?.operator || currentDoc.operator;
+        const newWellId = update.well || update.$set?.well || currentDoc.well;
+
+        if (newVehicleId) {
+
+            console.log("newVehicleId");
+            const vehicle = await Vehicle.findById(newVehicleId);
+            if (vehicle) {
+                const newCapacity = vehicle.capacity;
+                update.RequiredCapacity = newCapacity;
+            }
+        }
+
+        if (newOperator === Operators.altadhamun) {
+            const well = await Well.findById(newWellId);
+            if (well) {
+                const reqCap =
+                    update.$set?.RequiredCapacity ||
+                    update.RequiredCapacity ||
+                    currentDoc.RequiredCapacity;
+
+                const newReplyPrice = reqCap * well.pricePerUnit;
+
+                update.replyPrice = newReplyPrice;
+            }
+        }
+
+        this.setUpdate(update);
         next();
     } catch (err) {
         next(err);
