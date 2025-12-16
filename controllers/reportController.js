@@ -7,7 +7,6 @@ import { SuccessGetMessage } from "../util/SuccessMessages.js";
 const Model = DailyOrder
 
 export async function gitReports(req, res) {
-
   const { project, groupBy = "transporter", sendingDate, StatusOrder = status.IMPLEMENTED } = req.query
   const projectId = new mongoose.Types.ObjectId(project);
 
@@ -26,7 +25,15 @@ export async function gitReports(req, res) {
     vehicle: "$vehicle"
   };
 
-  // الافتراضي لو لم يتم إرسال groupBy
+  
+  let firstMatch = {
+    sendingDate: { $gte: start, $lte: end },
+  }
+
+  if (StatusOrder) {
+    firstMatch.status = StatusOrder
+  }
+
   const groupField = groupFieldsMap[groupBy] || "$transporter";
 
   // نحدد هل نعرض operator - vehicle - price
@@ -34,10 +41,7 @@ export async function gitReports(req, res) {
 
   const reports = await Model.aggregate([
     {
-      $match: {
-        sendingDate: { $gte: start, $lte: end },
-        status: StatusOrder
-      }
+      $match: firstMatch
     },
     {
       $lookup: {
@@ -86,21 +90,17 @@ export async function gitReports(req, res) {
           //   ]
           // },
 
-          operator: includeExtraFields ? "$operator" : null,
-          vehicle: includeExtraFields ? "$vehicle" : null,
-          replyPrice: includeExtraFields ? "$replyPrice" : null,
+          operator: includeExtraFields ? "$operator" : "$$REMOVE",
+          vehicle: includeExtraFields ? "$vehicle" : "$$REMOVE",
+          replyPrice: includeExtraFields ? "$replyPrice" : "$$REMOVE",
         },
         totalPrice: { $sum: "$replyPrice" },
         totalOrders: { $sum: 1 },
-        // totalOrdersDone: { $sum: { $cond: [{ $ifNull: ["$executionTime", false] }, 1, 0] } },
-        // totalAmount: { $sum: "$amount" },
         school: { $first: "$school" },
         supervisor: { $first: "$supervisor" },
         transporter: { $first: "$transporter" },
       }
     },
-
-    // { $sort: { "_id.day": 1 } },
     {
       $group: {
         _id: {
@@ -109,10 +109,9 @@ export async function gitReports(req, res) {
           // operator: "$_id.operator",
           // vehicle: "$_id.vehicle",
           // replyPrice: "$_id.replyPrice",
-          operator: includeExtraFields ? "$_id.operator" : null,
-          vehicle: includeExtraFields ? "$_id.vehicle" : null,
-          replyPrice: includeExtraFields ? "$_id.replyPrice" : null,
-
+          operator: includeExtraFields ? "$_id.operator" : "$$REMOVE",
+          vehicle: includeExtraFields ? "$_id.vehicle" : "$$REMOVE",
+          replyPrice: includeExtraFields ? "$_id.replyPrice" : "$$REMOVE",
         },
         detailsOfDays: {
           $push: {
@@ -121,15 +120,11 @@ export async function gitReports(req, res) {
           }
         },
         monthlyOrders: { $sum: "$totalOrders" },
-        // monthlyOrdersDone: { $sum: "$totalOrdersDone" },
-        // totalPrice: { $sum: "$totalPrice" },
         monthlyPrice: { $sum: "$totalPrice" },
 
         school: { $first: "$school" },
         supervisor: { $first: "$supervisor" },
         transporter: { $first: "$transporter" },
-
-        // totalPrice: { $sum: "$totalAmount" },
       }
     },
     {
@@ -177,14 +172,18 @@ export async function gitReports(req, res) {
         RequiredCapacity: "$_id.RequiredCapacity",
         operator: "$_id.operator",
         vehicle: "$vehicleInfo.plateNumber",
-        replyPrice: "$_id.replyPrice",
+        replyPrice: {
+          $round: [
+            "$_id.replyPrice",
+            2
+          ]
+        },
         detailsOfDays: 1,
         monthlyOrders: 1,
-        // monthlyOrdersDone: 1,
         totalCapacity: { $multiply: ["$monthlyOrders", "$_id.RequiredCapacity"] },
-        // totalCapacityDone: { $multiply: ["$monthlyOrdersDone", "$_id.RequiredCapacity"] },
-
-        totalPrice: 1,
+        monthlyPrice: {
+          $round: ["$monthlyPrice", 2]
+        }
       }
     },
     { $sort: { "operator": 1, "transporter.name": 1, "school": 1, "RequiredCapacity": 1 } },
@@ -196,7 +195,7 @@ export async function gitReports(req, res) {
         // grandTotalOrdersDone: { $sum: "$monthlyOrdersDone" },
         grandTotalCapacity: { $sum: "$totalCapacity" },
         // grandTotalCapacityDone: { $sum: "$totalCapacityDone" },
-        grandTotalPrice: { $sum: "$totalPrice" }
+        grandTotalPrice: { $sum: "$monthlyPrice" }
       }
     },
     {
@@ -207,12 +206,15 @@ export async function gitReports(req, res) {
         grandTotalOrdersDone: 1,
         grandTotalCapacity: 1,
         grandTotalCapacityDone: 1,
-        grandTotalPrice: 1,
+        grandTotalPrice: {
+          $round: [
+            "$grandTotalPrice",
+            2
+          ]
+        }
       }
     }
   ])
-
-  console.log("groupField", reports[0]);
 
   res.status(200).json({
     status: "success",
