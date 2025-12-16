@@ -13,29 +13,26 @@ const Model = School
 const ModelName = "المدرسة"
 const populates = {
     path: "project",
-    select: "name",           // نختار فقط هذه الحقول من المشروع
+    select: "name",           
     populate: {
         path: "region",
-        select: "name",           // نختار فقط هذه الحقول من المنطقة
+        select: "name",           
     },
     path: "supervisor",
     select: "name"
 }
 
 const createSchool = createModel((req) => {
-    const { name, project, address, gps } = req.body
+    const { name, project } = req.body
     return {
         Model, ModelName,
         foundErrorMessage: foundError2(ModelName),
-        searchObj: { name, project },
-        reqBody: { name, project, address, gps },
+        searchObj: { name, project }
     }
 })
 
 const getCountSchoolDocs = getCountDocs(Model, "عدد المدارس", async (req) => {
     const { role, _id, project, region } = req.user;
-
-
     let filter = {};
 
     switch (role) {
@@ -46,7 +43,6 @@ const getCountSchoolDocs = getCountDocs(Model, "عدد المدارس", async (r
 
         case Roles.PROJECT_MANAGER:
             filter = { project };
-            console.log("filter filter", filter);
             break;
 
         case Roles.SUPERVISOR:
