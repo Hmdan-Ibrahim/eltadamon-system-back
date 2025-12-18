@@ -26,6 +26,9 @@ const createDailyOrder = (req, res, next) => {
     const isCollection = Array.isArray(req.body)
 
     if (!isCollection) {
+        if (req.user.role == Roles.SUPERVISOR) {
+            req.body.supervisor = req.user._id
+        }
         return createModel(_ => ({
             Model, ModelName,
             foundErrorMessage: foundError(ModelName),
