@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { asyncWrapperMiddleware } from "../middleware/asyncWrapperMiddleware.js";
 import { DailyOrder } from "../models/DailyOrder.js";
+import { School } from "../models/School.js";
 import { createModel } from "../util/crudModels/createModel.js";
 import { deleteModel } from "../util/crudModels/deleteModel.js";
 import { getAllModels } from "../util/crudModels/getAllModels.js";
@@ -28,6 +29,9 @@ const createDailyOrder = (req, res, next) => {
     if (!isCollection) {
         if (req.user.role == Roles.SUPERVISOR) {
             req.body.supervisor = req.user._id
+        } else {
+            const school =  await School.findById(req.body.school)
+            req.body.supervisor = school?.supervisor
         }
         return createModel(_ => ({
             Model, ModelName,
