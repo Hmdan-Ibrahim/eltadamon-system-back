@@ -13,7 +13,7 @@ const DailyOrderSchema = new Schema({
     supervisor: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, "حدد المشرف الذي قام بالطلب!"]
+        // required: [true, "حدد المشرف الذي قام بالطلب!"]
     },
     operator: {
         type: String,
