@@ -23,7 +23,7 @@ const populates = [
 ];
 
 
-const createDailyOrder = async a(re, res, next) => {
+const createDailyOrder = async(req, res, next) => {
     const isCollection = Array.isArray(req.body)
 
     if (!isCollection) {
