@@ -24,7 +24,9 @@ const DailyOrderSchema = new Schema({
     transporter: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, "حدد الموصل!"]
+        required: [function () {
+            return this.operator !== Operators.purchases;
+        }, "حدد الموصل!"]
     },
     vehicle: {
         type: Schema.Types.ObjectId, ref: 'Vehicle',
