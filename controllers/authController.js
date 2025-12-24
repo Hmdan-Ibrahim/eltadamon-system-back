@@ -38,10 +38,7 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
     }
 
     if (user.isLogining) {
-        if (
-            user.userAgent !== req.headers["user-agent"] ||
-            user?.deviceIp != ip
-        ) {
+        if ( user?.deviceIp != ip ) {
             return next({
                 statusCode: 403,
                 status: "failed",
