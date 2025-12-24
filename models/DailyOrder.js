@@ -2,6 +2,7 @@ import { model, Schema } from "mongoose";
 import Operators from "../util/Operators.js";
 import { Vehicle } from "./Vehicle.js";
 import { Well } from "./Well.js";
+import { User } from "./User.js";
 import { StatusOrder } from "../util/StatusOrder.js";
 
 const DailyOrderSchema = new Schema({
@@ -50,7 +51,13 @@ const DailyOrderSchema = new Schema({
             return this.operator === Operators.altadhamun;
         }, "حدد تحلية الطلب!"]
     },
-    status: { type: String, enum: [StatusOrder.NOT_IMPLEMENTED, StatusOrder.IMPLEMENTED], default: "لم ينفذ" },     // محسوب تلقائيًا = deliveredVolumeTon * replyPrice
+     driverTrip: {
+        type: Number,
+        // required: [function () {
+        //     return this.operator === Operators.altadhamun;
+        // }, "حدد تحلية الطلب!"]
+    },
+    status: { type: String, enum: [StatusOrder.NOT_IMPLEMENTED, StatusOrder.IMPLEMENTED], default: "لم ينفذ" },
     sendingDate: {
         type: Date,
         required: [true, "حدد موعد الارسال!"],
@@ -76,8 +83,13 @@ DailyOrderSchema.pre("save", async function (next) {
         if (this.operator === Operators.altadhamun) {
             const well = await Well.findById(this.well);
             if (!well) throw new Error("well غير موجود");
-
             this.replyPrice = this.RequiredCapacity * well.pricePerUnit;
+
+            if(!this.driverTrip) {
+                const driver = await User.findById(this.transporter);
+                if (!driver) throw new Error("السائق غير موجود");
+                this.driverTrip = driver.trip
+            }            
         }
         next();
     } catch (err) {
@@ -99,8 +111,6 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
         const newWellId = update.well || update.$set?.well || currentDoc.well;
 
         if (newVehicleId) {
-
-            console.log("newVehicleId");
             const vehicle = await Vehicle.findById(newVehicleId);
             if (vehicle) {
                 const newCapacity = vehicle.capacity;
