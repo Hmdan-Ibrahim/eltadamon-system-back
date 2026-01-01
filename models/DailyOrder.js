@@ -50,8 +50,13 @@ const DailyOrderSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Well',
         required: [function () {
-            return this.operator === Operators.altadhamun;
+            return ( this.operator === Operators.altadhamun && this.orderType === "توريد");
         }, "حدد تحلية الطلب!"]
+    },
+    orderType: {
+        type: String,
+        enum:  ["نزح", "توريد"],
+        default: "توريد"
     },
      driverTrip: {
         type: Number,
