@@ -7,7 +7,7 @@ import { SuccessGetMessage } from "../util/SuccessMessages.js";
 const Model = DailyOrder
 
 export async function gitReports(req, res) {
-  const { project, groupBy = "transporter", sendingDate, StatusOrder = status.IMPLEMENTED } = req.query
+  const { project, groupBy = "transporter", sendingDate, orderType, StatusOrder = status.IMPLEMENTED } = req.query
   const projectId = new mongoose.Types.ObjectId(project);
 
   const year = new Date(sendingDate).getFullYear()
@@ -28,6 +28,7 @@ export async function gitReports(req, res) {
   
   let firstMatch = {
     sendingDate: { $gte: start, $lte: end },
+    orderType
   }
 
   if (StatusOrder) {
