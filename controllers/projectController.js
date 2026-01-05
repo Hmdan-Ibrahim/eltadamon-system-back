@@ -1,4 +1,5 @@
 import { Project } from "../models/Project.js";
+import { asyncWrapperMiddleware } from "../middleware/asyncWrapperMiddleware.js";
 import { getCountDocs } from "../util/apiFeatures/getCountDocs.js";
 import { createModel } from "../util/crudModels/createModel.js";
 import { getModel } from "../util/crudModels/getModel.js";
@@ -32,30 +33,69 @@ const getCountProjectDocs = getCountDocs(Model, "عدد المشاريع", async
     let filter = {};
 
     switch (role) {
-        case Roles.REGION_MANAGER: // مدير منطقة
-            // احصل على كل مشاريع المنطقة
+        case Roles.MANAGER: 
+            filter = {};
+            break;
+        case Roles.REGION_MANAGER: 
             filter = { region };
             break;
 
-        case Roles.PROJECT_MANAGER: // مدير مشروع
-            filter = { manager: _id }; // مدارس المشروع فقط
+        case Roles.PROJECT_MANAGER: 
+            filter = { manager: _id }; 
             break;
 
-        case Roles.SUPERVISOR: // مشرف
+        case Roles.SUPERVISOR: 
             filter = { supervisor: _id };
             break;
 
         default:
-            filter = {}; // احتياط
+            throw new Error("دور المستخدم غير صالح!")
     }
-
-    console.log("filter filter", filter);
 
     return filter;
 });
 
 const getAllProjects = getAllModels(Model, "المشاريع", populates)
 const getProject = getModel(Model, ModelName, notFoundError(ModelName), populates)
+const getProjectSignatures = asyncWrapperMiddleware(async (req, res, next) => {
+    const project = await Project.findById(req.params.id)
+      .populate({
+        path: "manager",
+        select: "name signature role",
+      })
+      .populate({
+        path: "region",
+        populate: {
+          path: "manager",
+          select: "name signature role",
+        },
+      })
+      .lean();
+      
+    if (!project) {
+      return res.status(404).json({ message: "المشروع غير موجود" });
+    }
+
+    const projectManager = project.manager
+      ? {
+          name: project.manager.name,
+          imageSignature: `${req.protocol}://${req.get("host")}:3000/uploads/${project.manager.signature}`,
+        }
+      : null;
+
+    const regionManager = project.region?.manager
+      ? {
+          name: project.region.manager.name,
+          imageSignature: `${req.protocol}://${req.get("host")}:3000/uploads/${project.region.manager.signature}`,
+        }
+      : null;
+
+    res.status(200).json({
+      projectManager,
+      regionManager,
+    });
+})
+
 const updateProject = updateModel(Model, ModelName, notFoundError(ModelName), populates)
 const deleteProject = deleteModel(Model, ModelName, notFoundError(ModelName))
 
@@ -64,6 +104,7 @@ export {
     getCountProjectDocs,
     getAllProjects,
     getProject,
+    getProjectSignatures,
     updateProject,
     deleteProject
 }
