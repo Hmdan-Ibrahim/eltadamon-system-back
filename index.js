@@ -3,6 +3,7 @@ import * as dotenv from "dotenv";
 import cors from "cors"
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import path from "path";
 
 import { connectDB } from "./config/connectDB.js";
 import { globalHandle } from "./middleware/globalHandle.js";
@@ -44,7 +45,7 @@ app.use(cors({
     credentials: true
 }))
 
-// app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
 
 app.use("/api/users", userRoutes);
 app.use("/api/regions", regionRoutes);
