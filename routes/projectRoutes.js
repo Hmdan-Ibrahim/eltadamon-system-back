@@ -1,11 +1,12 @@
 import { Router } from "express";
 import {
     createProject,
-    deleteProject,
     getAllProjects,
     getProject,
     getCountProjectDocs,
+    getProjectSignatures,
     updateProject,
+    deleteProject,
 } from "../controllers/projectController.js";
 import { protect } from "../middleware/protect.js";
 import { restrictTo } from "../middleware/restrictTo.js";
@@ -25,5 +26,9 @@ projectRoutes
     .get(getProject)
     .patch(restrictTo(Roles.MANAGER, Roles.REGION_MANAGER), updateProject)
     .delete(restrictTo(Roles.MANAGER, Roles.REGION_MANAGER), deleteProject);
+projectRoutes.get(
+  "/:id/signatures",
+  getProjectSignatures
+);
 
 export default projectRoutes;
