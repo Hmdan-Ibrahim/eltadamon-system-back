@@ -28,7 +28,7 @@ export async function gitReports(req, res) {
   
   let firstMatch = {
     sendingDate: { $gte: start, $lte: end },
-    ordersType
+    orderType: ordersType
   }
 
   if (StatusOrder) {
