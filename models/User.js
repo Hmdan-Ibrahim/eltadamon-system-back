@@ -52,11 +52,21 @@ const UserSchema = new Schema({
   },
   accountName: {
     type: String,
-    unique: [true, "اسم الحساب لابد أن يكون فريداً!"]
+    unique: [true, "اسم الحساب لابد أن يكون فريداً!"],
+    sparse: true,
+    trim: true,
+    required: [function () {
+      return ([Roles.CONTRACTOR].includes(this.role))
+    }, `يجب تحديد اسم الحساب`]
   },
   accountNumber: {
     type: String,
-    unique: [true, "رقم الحساب لابد أن يكون فريداً!"]
+    unique: [true, "رقم الحساب لابد أن يكون فريداً!"],
+    sparse: true,
+    trim: true,
+    required: [function () {
+      return ([Roles.CONTRACTOR].includes(this.role))
+    }, `يجب تحديد رقم الحساب`]
   },
   userAgent: String,
   deviceIp: String,

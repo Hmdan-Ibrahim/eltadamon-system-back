@@ -38,7 +38,7 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
     }
 
     if (user.isLogining) {
-        if ( user?.deviceIp != ip ) {
+        if (user?.deviceIp != ip) {
             return next({
                 statusCode: 403,
                 status: "failed",
@@ -47,7 +47,7 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
         }
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: 1980 })
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1d" })
     const { _id, name, phone, role, region, project } = user
 
     await User.updateOne({ _id }, { isLogining: true, userAgent: req.headers['user-agent'], deviceIp: ip })

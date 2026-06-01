@@ -15,8 +15,9 @@ const SchoolSchema = new Schema({
     ref: 'User',
     // required: [true, "لابد من كل منطقة أن يكون لها مدير."]
   },
-  // optional extras
-  address: String,
+  district: String,
+  neighborhood: String,
+  ministerialNumber: String,
   gps: {
     lat: Number,
     lng: Number

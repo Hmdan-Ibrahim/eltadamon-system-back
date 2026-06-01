@@ -40,25 +40,25 @@ const DailyOrderSchema = new Schema({
             return [Operators.contractor, Operators.purchases].includes(this.operator);
         }, "حدد كمية الرد"]
     },
-    replyPrice: {   
+    replyPrice: {
         type: Number,
         required: [function () {
-             return [Operators.contractor, Operators.purchases].includes(this.operator);
+            return [Operators.contractor, Operators.purchases].includes(this.operator);
         }, "حدد سعر الرد"]
     },
     well: {
         type: Schema.Types.ObjectId,
         ref: 'Well',
         required: [function () {
-            return ( this.operator === Operators.altadhamun && this.orderType === "توريد");
+            return (this.operator === Operators.altadhamun && this.orderType === "توريد");
         }, "حدد تحلية الطلب!"]
     },
     orderType: {
         type: String,
-        enum:  ["نزح", "توريد"],
+        enum: ["نزح", "توريد"],
         default: "توريد"
     },
-     driverTrip: {
+    driverTrip: {
         type: Number,
         // required: [function () {
         //     return this.operator === Operators.altadhamun;
@@ -69,7 +69,19 @@ const DailyOrderSchema = new Schema({
         type: Date,
         required: [true, "حدد موعد الارسال!"],
     },
-    image: String,
+    buildingImage: {
+        type: String,
+        required: [function () {
+            return this.status === StatusOrder.IMPLEMENTED;
+        }, "صورة المبنى مطلوبة عند التنفيذ"]
+    },
+
+    images: {
+        type: [String],
+        required: [function () {
+            return this.status === StatusOrder.IMPLEMENTED;
+        }, "صور التنفيذ مطلوبة عند التنفيذ"]
+    },
     executionTime: Date,
     notes: String
 }, {
@@ -89,14 +101,14 @@ DailyOrderSchema.pre("save", async function (next) {
 
         if (this.operator === Operators.altadhamun) {
             const well = await Well.findById(this.well);
-            if (!well) throw new Error("well غير موجود");
+            if (!well) throw new Error("التحلية غير موجود");
             this.replyPrice = this.RequiredCapacity * well.pricePerUnit;
 
-            if(!this.driverTrip) {
+            if (!this.driverTrip) {
                 const driver = await User.findById(this.transporter);
                 if (!driver) throw new Error("السائق غير موجود");
                 this.driverTrip = driver.trip
-            }            
+            }
         }
         next();
     } catch (err) {
@@ -146,7 +158,7 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
     }
 });
 
-DailyOrderSchema.virtual("totalReplayPrice").get(function () {
+DailyOrderSchema.virtual("totalReplyPrice").get(function () {
     return this.RequiredCapacity * this.replyPrice;
 })
 

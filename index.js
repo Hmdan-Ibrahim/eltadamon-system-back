@@ -41,7 +41,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
     origin: [
-        "https://altadamon-system.vercel.app"
+        "https://altadamon-system.vercel.app",
+        "http://localhost:5173",
     ],
     credentials: true
 }))

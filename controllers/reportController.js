@@ -25,20 +25,29 @@ export async function gitReports(req, res) {
     vehicle: "$vehicle"
   };
 
-  
+
   let firstMatch = {
     sendingDate: { $gte: start, $lte: end },
-    orderType: ordersType
-  }
-
-  if (StatusOrder) {
-    firstMatch.status = StatusOrder
+    orderType: ordersType,
+    status: StatusOrder
   }
 
   const groupField = groupFieldsMap[groupBy] || "$transporter";
-
-  // نحدد هل نعرض operator - vehicle - price
   const includeExtraFields = groupBy === "transporter";
+
+  console.log(await Model.aggregate([
+    {
+      $match: firstMatch
+    },
+    {
+      $lookup: {
+        from: "schools",
+        localField: "school",
+        foreignField: "_id",
+        as: "schoolInfo"
+      }
+    }]));
+
 
   const reports = await Model.aggregate([
     {
@@ -64,32 +73,6 @@ export async function gitReports(req, res) {
           groupBy: groupField,
           RequiredCapacity: "$RequiredCapacity",
           day: { $dateToString: { format: "%Y-%m-%d", date: "$sendingDate" } },
-          // operator: "$operator",
-          // vehicle: "$vehicle",
-          // replyPrice: "$replyPrice",
-
-          // operator: {
-          //   $cond: [
-          //     { $eq: [groupBy, "transporter"] },
-          //     "$operator",
-          //     null
-          //   ]
-          // },
-
-          // vehicle: {
-          //   $cond: [
-          //     { $eq: [groupBy, "transporter"] },
-          //     "$vehicle",
-          //     null
-          //   ]
-          // },
-          // replyPrice: {
-          //   $cond: [
-          //     { $eq: [groupBy, "transporter"] },
-          //     "$replyPrice",
-          //     null
-          //   ]
-          // },
 
           operator: includeExtraFields ? "$operator" : "$$REMOVE",
           vehicle: includeExtraFields ? "$vehicle" : "$$REMOVE",
@@ -107,9 +90,6 @@ export async function gitReports(req, res) {
         _id: {
           groupBy: "$_id.groupBy",
           RequiredCapacity: "$_id.RequiredCapacity",
-          // operator: "$_id.operator",
-          // vehicle: "$_id.vehicle",
-          // replyPrice: "$_id.replyPrice",
           operator: includeExtraFields ? "$_id.operator" : "$$REMOVE",
           vehicle: includeExtraFields ? "$_id.vehicle" : "$$REMOVE",
           replyPrice: includeExtraFields ? "$_id.replyPrice" : "$$REMOVE",
@@ -216,6 +196,9 @@ export async function gitReports(req, res) {
       }
     }
   ])
+
+  console.log(reports);
+
 
   res.status(200).json({
     status: "success",
