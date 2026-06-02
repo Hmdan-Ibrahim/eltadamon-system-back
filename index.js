@@ -31,7 +31,12 @@ app.use(cors({
         "https://altadamon-system.vercel.app",
         "http://localhost:5173",
     ],
-    credentials: true
+    credentials: true,
+    exposedHeaders: [
+        "RateLimit-Limit",
+        "RateLimit-Remaining",
+        "RateLimit-Reset"
+    ]
 }))
 
 const limiter = rateLimit({
