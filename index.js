@@ -24,19 +24,6 @@ dotenv.config({ path: "config.env" });
 const app = express();
 app.set("trust proxy", 1);
 
-const limiter = rateLimit({
-    windowMs: 60 * 30 * 1000,
-    max: 550,
-    message: "تم تجاوز الحد المسموح من الطلبات.",
-    // keyGenerator: (req) => req.ip, // استخدم IP كمفتاح
-    handler: (req, res, next) => {
-        return next({ statusCode: 429, status: "error", message: "تم تجاوز الحد المسموح من الطلبات." })
-        // res.status(429).send('تم تجاوز الحد المسموح من الطلبات.');
-    }
-});
-
-app.use("/api", limiter);
-
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
@@ -46,6 +33,21 @@ app.use(cors({
     ],
     credentials: true
 }))
+
+const limiter = rateLimit({
+    windowMs: 60 * 15 * 1000,
+    max: 650,
+    message: "تم تجاوز الحد المسموح من الطلبات.",
+    skip: (req) => req.method === "OPTIONS",
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(req?.user?._id || req.ip),
+    handler: (req, res, next) => {
+        return next({ statusCode: 429, status: "error", message: "تم تجاوز الحد المسموح من الطلبات." })
+    }
+});
+
+app.use("/api", limiter);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
