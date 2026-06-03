@@ -77,6 +77,7 @@ const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
         operator: 1,
         RequiredCapacity: 1,
         replyPrice: 1,
+        driverTrip: 1,
         status: 1,
         orderType: 1,
         sendingDate: 1,
@@ -260,6 +261,14 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
 
     if (req.query.projectId) {
         matchStage.status = "منفذ";
+    }
+
+    if (userRole === Roles.SUPERVISOR) {
+        matchStage.supervisor = userId;
+    }
+
+    if (userRole === Roles.DRIVER) {
+        matchStage.transporter = userId;
     }
 
     const schoolMatchPipeline = [
