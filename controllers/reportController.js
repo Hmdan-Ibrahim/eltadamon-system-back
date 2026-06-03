@@ -3,12 +3,15 @@ import { DailyOrder } from "../models/DailyOrder.js";
 import { getDaysInMonth } from "../util/functions.js";
 import { StatusOrder as status } from "../util/StatusOrder.js";
 import { SuccessGetMessage } from "../util/SuccessMessages.js";
+import { Roles } from "../util/Roles.js";
 
 const Model = DailyOrder
 
 export async function gitReports(req, res) {
   const { project, groupBy = "transporter", sendingDate, ordersType, StatusOrder = status.IMPLEMENTED } = req.query
   const projectId = new mongoose.Types.ObjectId(project);
+  const userId = req.user._id;
+  const userRole = req.user.role;
 
   const year = new Date(sendingDate).getFullYear()
   const month = new Date(sendingDate).getMonth() + 1
@@ -29,7 +32,9 @@ export async function gitReports(req, res) {
   let firstMatch = {
     sendingDate: { $gte: start, $lte: end },
     orderType: ordersType,
-    status: StatusOrder
+    status: StatusOrder,
+    ...(userRole === Roles.SUPERVISOR && { supervisor: userId }),
+    ...(userRole === Roles.DRIVER && { transporter: userId })
   }
 
   const groupField = groupFieldsMap[groupBy] || "$transporter";
