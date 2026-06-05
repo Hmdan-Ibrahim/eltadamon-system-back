@@ -128,6 +128,7 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
         const newVehicleId = update.vehicle || update.$set?.vehicle || currentDoc.vehicle;
         const newOperator = update.operator || update.$set?.operator || currentDoc.operator;
         const newWellId = update.well || update.$set?.well || currentDoc.well;
+        const newOrderType = update.orderType || update.$set?.orderType || currentDoc.orderType;
 
         if (newVehicleId) {
             const vehicle = await Vehicle.findById(newVehicleId);
@@ -137,7 +138,7 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
             }
         }
 
-        if (newOperator === Operators.altadhamun) {
+        if (newOperator === Operators.altadhamun && newOrderType === "توريد") {
             const well = await Well.findById(newWellId);
             if (well) {
                 const reqCap =
@@ -149,6 +150,14 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
 
                 update.replyPrice = newReplyPrice;
             }
+        }
+
+        if (newOrderType === "نزح") {
+            update.$unset = {
+                ...(update.$unset || {}),
+                well: "",
+                ...(newOperator === Operators.altadhamun && { replyPrice: "" })
+            };
         }
 
         this.setUpdate(update);
