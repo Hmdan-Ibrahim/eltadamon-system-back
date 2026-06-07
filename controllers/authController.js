@@ -37,15 +37,15 @@ export const login = asyncWrapperMiddleware(async (req, res, next) => {
         });
     }
 
-    if (user.isLogining) {
-        if (user?.deviceIp != ip) {
-            return next({
-                statusCode: 403,
-                status: "failed",
-                message: "المستخدم مسجل الدخول من جهاز آخر. يرجى تسجيل الخروج أولاً!",
-            });
-        }
-    }
+    // if (user.isLogining) {
+    //     if (user?.deviceIp != ip) {
+    //         return next({
+    //             statusCode: 403,
+    //             status: "failed",
+    //             message: "المستخدم مسجل الدخول من جهاز آخر. يرجى تسجيل الخروج أولاً!",
+    //         });
+    //     }
+    // }
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1d" })
     const { _id, name, phone, role, region, project } = user
