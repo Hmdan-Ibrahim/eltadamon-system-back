@@ -37,7 +37,7 @@ export async function gitReports(req, res) {
   }
 
   const groupField = groupFieldsMap[groupBy] || "$transporter";
-  const includeExtraFields = groupBy === "transporter";
+  const isGroupByTransporter = groupBy === "transporter";
 
   const reports = await Model.aggregate([
     {
@@ -64,16 +64,16 @@ export async function gitReports(req, res) {
       $group: {
         _id: {
           groupBy: groupField,
-          RequiredCapacity: includeExtraFields ? "$RequiredCapacity" : "$$REMOVE",
+          RequiredCapacity: isGroupByTransporter ? "$RequiredCapacity" : "$$REMOVE",
           day: { $dateToString: { format: "%Y-%m-%d", date: "$sendingDate" } },
 
-          operator: includeExtraFields ? "$operator" : "$$REMOVE",
-          vehicle: includeExtraFields ? "$vehicle" : "$$REMOVE",
-          replyPrice: includeExtraFields ? "$replyPrice" : "$$REMOVE",
-          well: includeExtraFields ? "$well" : "$$REMOVE",
+          operator: isGroupByTransporter ? "$operator" : "$$REMOVE",
+          vehicle: isGroupByTransporter ? "$vehicle" : "$$REMOVE",
+          replyPrice: isGroupByTransporter ? "$replyPrice" : "$$REMOVE",
+          well: isGroupByTransporter ? "$well" : "$$REMOVE",
         },
         totalCapacity: { $sum: "$RequiredCapacity" },
-        ...(includeExtraFields && {
+        ...(isGroupByTransporter && {
           totalPrice: { $sum: "$replyPrice" },
         }),
         totalOrders: { $sum: 1 },
@@ -92,23 +92,23 @@ export async function gitReports(req, res) {
       $group: {
         _id: {
           groupBy: "$_id.groupBy",
-          RequiredCapacity: includeExtraFields ? "$_id.RequiredCapacity" : "$$REMOVE",
-          operator: includeExtraFields ? "$_id.operator" : "$$REMOVE",
-          vehicle: includeExtraFields ? "$_id.vehicle" : "$$REMOVE",
-          replyPrice: includeExtraFields ? "$_id.replyPrice" : "$$REMOVE",
-          well: includeExtraFields ? "$_id.well" : "$$REMOVE",
+          RequiredCapacity: isGroupByTransporter ? "$_id.RequiredCapacity" : "$$REMOVE",
+          operator: isGroupByTransporter ? "$_id.operator" : "$$REMOVE",
+          vehicle: isGroupByTransporter ? "$_id.vehicle" : "$$REMOVE",
+          replyPrice: isGroupByTransporter ? "$_id.replyPrice" : "$$REMOVE",
+          well: isGroupByTransporter ? "$_id.well" : "$$REMOVE",
         },
         detailsOfDays: {
           $push: {
             day: "$_id.day",
             totalCapacityDay: "$totalCapacity",
-            totalOrdersDay: includeExtraFields ? "$totalOrders" : "$$REMOVE",
-            totalRevenueDay: includeExtraFields ? "$totalRevenue" : "$$REMOVE",
+            totalOrdersDay: isGroupByTransporter ? "$totalOrders" : "$$REMOVE",
+            totalRevenueDay: isGroupByTransporter ? "$totalRevenue" : "$$REMOVE",
           }
         },
         monthlyOrders: { $sum: "$totalOrders" },
         monthlyCapacity: { $sum: "$totalCapacity" },
-        ...(includeExtraFields && {
+        ...(isGroupByTransporter && {
           monthlyPrice: { $sum: "$totalPrice" },
           monthlyRevenue: { $sum: "$totalRevenue" },
         }),
@@ -122,7 +122,7 @@ export async function gitReports(req, res) {
         localField: "school",
         foreignField: "_id",
         pipeline: [
-          { $project: { _id: 1, name: 1 } },
+          { $project: { _id: 1, name: 1, ministerialNumber: 1 } },
         ],
         as: "schoolInfo"
       }
@@ -166,7 +166,7 @@ export async function gitReports(req, res) {
     {
       $project: {
         _id: 1,
-        ...(includeExtraFields && {
+        ...(isGroupByTransporter && {
           transporter: "$transporterInfo",
           vehicle: "$vehicleInfo.plateNumber",
           well: "$wellInfo.name",
@@ -188,10 +188,10 @@ export async function gitReports(req, res) {
           },
           ContractPricePerTon: { $literal: ContractPricePerTon }
         }),
-        ...(!includeExtraFields && { school: "$schoolInfo.name" }),
+        ...(!isGroupByTransporter && { school: "$schoolInfo.name", ministerialNumber: "$schoolInfo.ministerialNumber" }),
         detailsOfDays: 1,
         monthlyOrders: 1,
-        totalCapacity: includeExtraFields ? { $multiply: ["$monthlyOrders", "$_id.RequiredCapacity"] } : "$monthlyCapacity",
+        totalCapacity: isGroupByTransporter ? { $multiply: ["$monthlyOrders", "$_id.RequiredCapacity"] } : "$monthlyCapacity",
       }
     },
     { $sort: { "operator": 1, "transporter.name": 1, "school": 1, "RequiredCapacity": 1 } },
@@ -202,7 +202,7 @@ export async function gitReports(req, res) {
         grandTotalOrders: { $sum: "$monthlyOrders" },
         grandTotalCapacity: { $sum: "$totalCapacity" },
 
-        ...(includeExtraFields && {
+        ...(isGroupByTransporter && {
           grandTotalPrice: { $sum: "$monthlyPrice" },
           grandTotalRevenue: { $sum: "$monthlyRevenue" }
         })

@@ -17,7 +17,11 @@ const SchoolSchema = new Schema({
   },
   district: String,
   neighborhood: String,
-  ministerialNumber: String,
+  ministerialNumber: {
+    type: String,
+    required: [true, "لابد من وجود الرقم الوزاري!"],
+    unique: [true, "هذه الرقم موجود بالفعل!"]
+  },
   gps: {
     lat: Number,
     lng: Number
