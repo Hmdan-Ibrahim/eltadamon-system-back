@@ -1,10 +1,12 @@
 import express from "express";
+import { Server } from "socket.io";
 import * as dotenv from "dotenv";
 import cors from "cors"
 import cookieParser from "cookie-parser";
-import rateLimit, {ipKeyGenerator} from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
+import http from "http";
 
 import { connectDB } from "./config/connectDB.js";
 import { globalHandle } from "./middleware/globalHandle.js";
@@ -22,6 +24,8 @@ import neighbordhoodRoutes from "./routes/neighbordhoodRoutes.js";
 
 dotenv.config({ path: "config.env" });
 const app = express();
+const server = http.createServer(app);
+
 app.set("trust proxy", 1);
 
 app.use(express.json());
@@ -70,10 +74,26 @@ app.use("/api/reports", reportsRouter);
 
 connectDB(() => {
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
     });
 })
+
+
+const io = new Server(server, {
+    cors: {
+        origin: [
+            "https://altadamon-system.vercel.app",
+            "http://localhost:5173",
+        ],
+    },
+});
+
+app.set("io", io);
+
+io.on("connection", (socket) => {
+    console.log("Client Connected");
+});
 
 
 app.use((req, res, next) => {
@@ -81,18 +101,3 @@ app.use((req, res, next) => {
 })
 app.use(globalHandle);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// validate in user model

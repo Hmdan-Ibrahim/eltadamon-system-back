@@ -101,6 +101,8 @@ const updateDailyOrder = updateModel(Model, ModelName, notFoundError(ModelName),
 const deleteDailyOrder = deleteModel(Model, ModelName, notFoundError(ModelName))
 
 const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
+    const io = req.app.get("io");
+    const { socketId } = req.query;
     const aggregateProject = {
         _id: 1,
         school: 1,
@@ -112,6 +114,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
         images: 1,
     }
     const orders = await getDailyOrdersByProjectID(req, res, aggregateProject)
+    const total = orders.length;
 
     const pptx = new PptxGenJS();
     const TextPropsOptions = {
@@ -138,11 +141,41 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
         fontSize: 17,
     }
 
+
+    let completedSteps = 0;
+    const startTime = Date.now();
+
+    const updateProgress = () => {
+        if (!socketId || !io) return;
+
+        const elapsed = Date.now() - startTime;
+        const speed = completedSteps / (elapsed || 1);
+        const remaining = (total * 6) - completedSteps;
+        const eta = Math.round(
+            remaining / (speed || 1) / 1000
+        );
+
+        const progress = Math.min(
+            100,
+            Math.round(
+                (completedSteps * 100) /
+                (total * 6)
+            )
+        );
+
+        io.to(socketId).emit(
+            "pptx-progress", {
+            progress,
+            eta,
+        });
+    };
+
     for (const order of orders) {
         const slide = pptx.addSlide();
-
+        completedSteps++;
+        updateProgress();
         slide.addImage({
-            path: "https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/tadamon",
+            data: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/tadamon"),
             x: 0.1, y: 0.1, w: 1.3, h: 0.8,
         })
 
@@ -166,12 +199,14 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
 
         if (order.buildingImage) {
             slide.addImage({
-                path: order.buildingImage,
+                data: await imageToBase64(order.buildingImage),
                 x: 6.8,
                 y: 1.2,
                 w: 3,
                 h: 2.3,
             });
+            completedSteps++;
+            updateProgress();
         }
 
         if (Array.isArray(order.images)) {
@@ -192,12 +227,26 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
                         (_, i) => images[i % images.length]
                     );
 
-            finalImages.forEach((image, index) => {
+            const imagesBase64 = await Promise.all(
+                finalImages.map(imageToBase64)
+            );
+
+            imagesBase64.forEach((img, index) => {
+                if (!img) return;
+
                 slide.addImage({
-                    path: image, x, y, w: 3, h: 1.9,
+                    data: img,
+                    x,
+                    y,
+                    w: 3,
+                    h: 1.9,
                 });
 
+                completedSteps++;
+                updateProgress();
+
                 x += 3.2;
+
                 if ((index + 1) % 2 === 0) {
                     x = 0.3;
                     y += 2;
@@ -205,7 +254,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
             });
 
             slide.addImage({
-                path: "https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/TBC",
+                data: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/TBC"),
                 x: 0.3, y: 5.3, w: 0.42, h: 0.2,
             })
 
@@ -218,15 +267,20 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
             })
 
             slide.addImage({
-                path: "https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/land-sterling",
+                data: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/land-sterling"),
                 x: 8.5, y: 5.3, w: 1.4, h: 0.25,
             })
         }
     }
 
+    io.to(socketId).emit(
+        "pptx-progress", {
+        message: "جاري الاعداد...",
+        eta: 0,
+    });
+
     const buffer = await pptx.write("nodebuffer");
 
-    // Headers
     res.setHeader(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -404,6 +458,37 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
     const dailyOrders = await Model.aggregate(pipeline)
 
     return dailyOrders
+}
+
+
+async function imageToBase64(url) {
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch image: ${response.status} ${response.statusText}`
+            );
+        }
+
+        const contentType =
+            response.headers["content-type"] ||
+            "image/jpeg";
+
+        const arrayBuffer = await response.arrayBuffer();
+
+        const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+        return `data:${contentType};base64,${base64}`;
+    } catch (error) {
+        console.error(
+            "Failed loading image:",
+            url,
+            error.message
+        );
+
+        return null;
+    }
 }
 
 export {
