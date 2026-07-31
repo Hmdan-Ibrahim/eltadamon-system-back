@@ -77,14 +77,14 @@ const getProjectSignatures = asyncWrapperMiddleware(async (req, res, next) => {
   const projectManager = project.manager
     ? {
       name: project.manager.name,
-      imageSignature: `${req.protocol}://${req.get("host")}:3000/uploads/${project.manager.signature}`,
+      imageSignature: project.manager.signature,
     }
     : null;
 
   const regionManager = project.region?.manager
     ? {
       name: project.region.manager.name,
-      imageSignature: `${req.protocol}://${req.get("host")}:3000/uploads/${project.region.manager.signature}`,
+      imageSignature: project.region.manager.signature,
     }
     : null;
 

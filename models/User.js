@@ -69,6 +69,7 @@ const UserSchema = new Schema({
     }, `يجب تحديد رقم الحساب`]
   },
   userAgent: String,
+  signature: String,
   deviceIp: String,
   isLogining: Boolean
 }, { timestamps: true });

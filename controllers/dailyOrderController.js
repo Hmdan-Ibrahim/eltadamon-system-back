@@ -150,7 +150,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
 
         const elapsed = Date.now() - startTime;
         const speed = completedSteps / (elapsed || 1);
-        const remaining = (total * 6) - completedSteps;
+        const remaining = (total * 5) - completedSteps;
         const eta = Math.round(
             remaining / (speed || 1) / 1000
         );
@@ -159,7 +159,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
             100,
             Math.round(
                 (completedSteps * 100) /
-                (total * 6)
+                (total * 5)
             )
         );
 
@@ -170,12 +170,16 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
         });
     };
 
+    const logos = {
+        tbc: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/TBC"),
+        altadamon: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/tadamon"),
+        landSterling: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/land-sterling")
+    }
+
     for (const order of orders) {
         const slide = pptx.addSlide();
-        completedSteps++;
-        updateProgress();
         slide.addImage({
-            data: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/tadamon"),
+            data: logos.altadamon,
             x: 0.1, y: 0.1, w: 1.3, h: 0.8,
         })
 
@@ -254,7 +258,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
             });
 
             slide.addImage({
-                data: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/TBC"),
+                data: logos.tbc,
                 x: 0.3, y: 5.3, w: 0.42, h: 0.2,
             })
 
@@ -267,7 +271,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
             })
 
             slide.addImage({
-                data: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/land-sterling"),
+                data: logos.landSterling,
                 x: 8.5, y: 5.3, w: 1.4, h: 0.25,
             })
         }
@@ -275,7 +279,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
 
     io.to(socketId).emit(
         "pptx-progress", {
-        message: "جاري الاعداد...",
+        message: "جاري الاعداد للتنزيل...",
         eta: 0,
     });
 
