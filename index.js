@@ -20,6 +20,7 @@ import wellRoutes from "./routes/wellRoutes.js";
 import dailyOrderRoutes from "./routes/dailyOrderRoutes.js";
 import reportsRouter from "./routes/reportsRoutes.js";
 import neighbordhoodRoutes from "./routes/neighbordhoodRoutes.js";
+import storageRoutes from "./routes/storageRoutes.js";
 
 
 dotenv.config({ path: "config.env" });
@@ -33,7 +34,7 @@ app.use(cookieParser());
 app.use(cors({
     origin: [
         "https://altadamon-system.vercel.app",
-        "http://localhost:5173",
+        "http://localhost:34786",
     ],
     credentials: true,
     exposedHeaders: [
@@ -70,6 +71,7 @@ app.use("/api/schools", schoolRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/wells", wellRoutes);
 app.use("/api/daily-orders", dailyOrderRoutes);
+app.use("/api/storage", storageRoutes);
 app.use("/api/reports", reportsRouter);
 
 connectDB(() => {
@@ -84,7 +86,7 @@ const io = new Server(server, {
     cors: {
         origin: [
             "https://altadamon-system.vercel.app",
-            "http://localhost:5173",
+            "http://localhost:34786",
         ],
     },
 });

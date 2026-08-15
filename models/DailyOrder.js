@@ -118,7 +118,6 @@ DailyOrderSchema.pre("save", async function (next) {
 
 DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAndUpdate)/i, async function (next) {
     try {
-
         const update = this.getUpdate();
         const query = this.getQuery();
 
@@ -127,8 +126,12 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
 
         const newVehicleId = update.vehicle || update.$set?.vehicle || currentDoc.vehicle;
         const newOperator = update.operator || update.$set?.operator || currentDoc.operator;
+        const newTransporter = update.transporter || update.$set?.transporter || currentDoc.transporter;
         const newWellId = update.well || update.$set?.well || currentDoc.well;
         const newOrderType = update.orderType || update.$set?.orderType || currentDoc.orderType;
+
+        console.log({ update, newVehicleId, newOperator, newWellId, newOrderType });
+
 
         if (newVehicleId) {
             const vehicle = await Vehicle.findById(newVehicleId);
@@ -140,6 +143,13 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
 
         if (newOperator === Operators.altadhamun && newOrderType === "توريد") {
             const well = await Well.findById(newWellId);
+            const vehicle = await Vehicle.findById(newVehicleId);
+            const transporter = await User.findById(newTransporter);
+
+            if (vehicle) {
+                const newCapacity = vehicle.capacity;
+                update.RequiredCapacity = newCapacity;
+            }
             if (well) {
                 const reqCap =
                     update.$set?.RequiredCapacity ||
@@ -147,8 +157,19 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
                     currentDoc.RequiredCapacity;
 
                 const newReplyPrice = reqCap * well.pricePerUnit;
-
                 update.replyPrice = newReplyPrice;
+            }
+
+            if (transporter) {
+                update.driverTrip = transporter.trip
+            }
+        }
+
+        if (newOperator === Operators.contractor) {
+            update.$unset = {
+                ...(update.$unset || {}),
+                vehicle: "",
+                well: ""
             }
         }
 

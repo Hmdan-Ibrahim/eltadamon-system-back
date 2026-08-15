@@ -14,6 +14,9 @@ import { getDaysInMonth } from "../util/functions.js";
 import { createCollection } from "../util/crudModels/createCollection.js";
 import { Roles } from "../util/Roles.js";
 import path from "path";
+import { DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import { deleteStorageImages } from "../util/deleteStorageImages.js";
+import { getImageUrl } from "../util/getImageUrl.js";
 
 const Model = DailyOrder
 const ModelName = "الطلب اليومي"
@@ -97,8 +100,33 @@ const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
     });
 })
 const getDailyOrder = getModel(Model, ModelName, notFoundError(ModelName), populates)
-const updateDailyOrder = updateModel(Model, ModelName, notFoundError(ModelName), populates)
-const deleteDailyOrder = deleteModel(Model, ModelName, notFoundError(ModelName))
+const updateDailyOrder = updateModel(Model, ModelName, notFoundError(ModelName), populates, async ({ oldDoc, updates }) => {
+    const imagesToDelete = [];
+
+    if (
+        updates?.buildingImage && oldDoc?.buildingImage &&
+        updates?.buildingImage !== oldDoc?.buildingImage
+    ) {
+        imagesToDelete.push(oldDoc.buildingImage);
+    }
+
+    if (updates?.images) {
+        imagesToDelete.push(
+            ...(oldDoc.images || [])
+        );
+    }
+    await deleteStorageImages(imagesToDelete);
+})
+
+const deleteDailyOrder = deleteModel(Model, ModelName, notFoundError(ModelName), async (model) => {
+    const images = [
+        ...(model.images || []),
+        ...(model.buildingImage
+            ? [model.buildingImage]
+            : [])
+    ];
+    await deleteStorageImages(images);
+})
 
 const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
     const io = req.app.get("io");
@@ -122,7 +150,7 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
         rtlMode: true,
         align: "right",
         fontFace: "Arial",
-        fontSize: 16
+        fontSize: 14.5
     }
 
     const roundedTitle = {
@@ -305,16 +333,27 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
     const userRole = req.user.role;
     const date = new Date(req.query.sendingDate);
 
-    const start = new Date(date);
+    let start = new Date(date);
     start.setHours(0, 0, 0, 0);
-    const end = new Date(date);
+    let end = new Date(date);
     end.setHours(23, 59, 59, 999);
 
-    const matchStage = {
-        sendingDate: {
-            $gte: start,
-            $lte: end,
-        },
+    const matchStage = {}
+
+    const year = new Date(date).getFullYear()
+    const month = new Date(date).getMonth()
+    const numDays = getDaysInMonth(new Date(date).getFullYear(), month)
+
+    if (req.query.school) {
+        start = new Date(year, month, 1);
+        end = new Date(year, month + 1, 1);
+
+        matchStage.school = new Types.ObjectId(req.query.school)
+    }
+
+    matchStage.sendingDate = {
+        $gte: start,
+        $lte: end,
     };
 
     if (req.query.projectId) {
@@ -454,7 +493,7 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
         },
         {
             $sort: {
-                sendingDate: -1,
+                sendingDate: 1,
             },
         }
     );
@@ -467,7 +506,7 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
 
 async function imageToBase64(url) {
     try {
-        const response = await fetch(url);
+        const response = await fetch(getImageUrl(url));
 
         if (!response.ok) {
             throw new Error(

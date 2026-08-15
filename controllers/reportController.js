@@ -14,11 +14,11 @@ export async function gitReports(req, res) {
   const userRole = req.user.role;
 
   const year = new Date(sendingDate).getFullYear()
-  const month = new Date(sendingDate).getMonth() + 1
+  const month = new Date(sendingDate).getMonth()
   const numDays = getDaysInMonth(new Date(sendingDate).getFullYear(), month)
 
-  const start = new Date(`${year}-${month}`);
-  const end = new Date(`${year}-${month}-${numDays}`);
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 1);
 
   const ContractPricePerTon = 11.5
 
@@ -188,7 +188,7 @@ export async function gitReports(req, res) {
           },
           ContractPricePerTon: { $literal: ContractPricePerTon }
         }),
-        ...(!isGroupByTransporter && { school: "$schoolInfo.name", ministerialNumber: "$schoolInfo.ministerialNumber" }),
+        ...(!isGroupByTransporter && { school: "$schoolInfo" }),
         detailsOfDays: 1,
         monthlyOrders: 1,
         totalCapacity: isGroupByTransporter ? { $multiply: ["$monthlyOrders", "$_id.RequiredCapacity"] } : "$monthlyCapacity",
