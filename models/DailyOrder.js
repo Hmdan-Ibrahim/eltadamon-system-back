@@ -107,7 +107,8 @@ DailyOrderSchema.pre("save", async function (next) {
         if (this.operator === Operators.altadhamun) {
             const well = await Well.findById(this.well);
             if (!well) throw new Error("التحلية غير موجود");
-            this.replyPrice = this.RequiredCapacity * well.pricePerUnit;
+            if (well?.pricePerUnit) this.replyPrice = this.RequiredCapacity * well.pricePerUnit;
+            if (!this.replyPrice) return next({ statusCode: 401, status: "fiald", message: "سعر الرد مطلوب!" });
 
             if (!this.driverTrip) {
                 const driver = await User.findById(this.transporter);
