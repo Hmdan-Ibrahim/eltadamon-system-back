@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { DailyOrder } from "../models/DailyOrder.js";
 import { getDaysInMonth } from "../util/functions.js";
-import { StatusOrder as status } from "../util/StatusOrder.js";
+import { ApprovalStatus, StatusOrder as status } from "../util/StatusOrder.js";
 import { SuccessGetMessage } from "../util/SuccessMessages.js";
 import { Roles } from "../util/Roles.js";
 
@@ -32,6 +32,7 @@ export async function gitReports(req, res) {
     sendingDate: { $gte: start, $lte: end },
     orderType: ordersType,
     status: StatusOrder,
+    ApprovalStatus: ApprovalStatus.APPROVED,
     ...(userRole === Roles.SUPERVISOR && { supervisor: userId }),
     ...(userRole === Roles.DRIVER && { transporter: userId })
   }

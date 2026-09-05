@@ -31,6 +31,7 @@ const getCountProjectDocs = getCountDocs(Model, "عدد المشاريع", async
   let filter = {};
 
   switch (role) {
+    case Roles.ADMIN:
     case Roles.MANAGER:
       filter = {};
       break;

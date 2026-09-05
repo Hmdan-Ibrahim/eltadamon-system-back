@@ -8,18 +8,20 @@ import {
     getCountVehicleDocs,
     updateVehicle,
 } from "../controllers/vehicleController.js";
+import { restrictTo } from "../middleware/restrictTo.js";
+import { Roles } from "../util/Roles.js";
 
 const vehicleRoutes = Router();
 vehicleRoutes.use(protect);
+vehicleRoutes.get("/count", getCountVehicleDocs);
 vehicleRoutes
     .route("/")
     .get(getAllVehicles)
-    .post(createVehicle);
-vehicleRoutes.get("/count", getCountVehicleDocs);
+    .post(restrictTo(Roles.ADMIN), createVehicle);
 vehicleRoutes
     .route("/:id")
     .get(getVehicle)
-    .patch(updateVehicle)
-    .delete(deleteVehicle);
+    .patch(restrictTo(Roles.ADMIN), updateVehicle)
+    .delete(restrictTo(Roles.ADMIN), deleteVehicle);
 
 export default vehicleRoutes;

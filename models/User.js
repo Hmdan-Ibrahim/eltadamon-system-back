@@ -114,13 +114,63 @@ UserSchema.pre("save", async function (next) {
 
 UserSchema.pre("findOneAndUpdate", async function (next) {
   const update = this.getUpdate();
+  const user = await this.model.findOne(this.getQuery());
 
-  // إذا لم يكن هناك حقل password في التحديث → تجاهل
-  if (!update.password) return next();
+  if (!user) {
+    return next({
+      statusCode: 404,
+      status: "failed",
+      message: notFoundError("المستخدم"),
+    });
+  }
 
-  // إذا تم إرسال كلمة مرور جديدة → نقوم بتشفيرها
-  const hashedPassword = await hash(update.password, 10);
-  this.setUpdate({ ...update, password: hashedPassword });
+  const role = update.role ?? user.role;
+  const regionId = update.region ?? user.region;
+  const projectId = update.project ?? user.project;
+
+  if (update.region) {
+    const region = await Region.findById(update.region)
+
+    if (!region) {
+      return next({ statusCode: 404, status: "failed", message: notFoundError2("المنطقة") });
+    }
+
+    if (region.manager && this.role === Roles.REGION_MANAGER) {
+      return next({ statusCode: 404, status: "fiald", message: "هذه المنطقة لديها مدير بالفعل!" });
+    }
+    if (this.role === Roles.REGION_MANAGER) {
+      await Region.updateOne({ _id: this.region }, { manager: this._id });
+    }
+
+  }
+
+  if ([Roles.ADMIN, Roles.MANAGER].includes(update.role)) {
+    update.$unset = {
+      ...(update.$unset || {}),
+      region: "",
+      project: "",
+    };
+  }
+
+  if (update.project) {
+    const project = await Project.findById(update.project)
+
+    if (!project) {
+      return next({ statusCode: 404, status: "fiald", message: notFoundError("المشروع") });
+    }
+
+    if (project.manager && this.role === Roles.PROJECT_MANAGER) {
+      return next({ statusCode: 404, status: "fiald", message: "هذا المشروع لديه مدير بالفعل!" });
+    }
+    if (this.role === Roles.PROJECT_MANAGER) {
+      await Project.updateOne({ _id: this.project }, { manager: this._id });
+    }
+  }
+
+  if (update.password) {
+    const hashedPassword = await hash(update.password, 10);
+    this.setUpdate({ ...update, password: hashedPassword });
+  }
   next();
 });
 

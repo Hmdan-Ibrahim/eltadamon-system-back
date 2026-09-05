@@ -7,7 +7,7 @@ import { createNeighbordhood, updateNeighbordhood } from '../controllers/neighbo
 
 const neighbordhoodRoutes = Router();
 
-// neighbordhoodRoutes.use(protect)
+neighbordhoodRoutes.use(protect)
 neighbordhoodRoutes.route('/')
     // .post(restrictTo(Roles.MANAGER, Roles.REGION_MANAGER), createProject)
     .post(createNeighbordhood)

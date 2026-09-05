@@ -17,18 +17,18 @@ const projectRoutes = Router();
 projectRoutes.use(protect);
 projectRoutes
     .route("/")
-    .post(restrictTo(Roles.MANAGER, Roles.REGION_MANAGER), createProject)
-    .get(getAllProjects);
+    .post(restrictTo(Roles.ADMIN), createProject)
+    .get(restrictTo(Roles.ADMIN, Roles.MANAGER, Roles.REGION_MANAGER), getAllProjects);
 
 projectRoutes.get("/count", getCountProjectDocs);
 projectRoutes
     .route("/:id")
     .get(getProject)
-    .patch(restrictTo(Roles.MANAGER, Roles.REGION_MANAGER), updateProject)
-    .delete(restrictTo(Roles.MANAGER, Roles.REGION_MANAGER), deleteProject);
+    .patch(restrictTo(Roles.ADMIN), updateProject)
+    .delete(restrictTo(Roles.ADMIN), deleteProject);
 projectRoutes.get(
-  "/:id/signatures",
-  getProjectSignatures
+    "/:id/signatures", restrictTo(Roles.REGION_MANAGER, Roles.PROJECT_MANAGER),
+    getProjectSignatures
 );
 
 export default projectRoutes;

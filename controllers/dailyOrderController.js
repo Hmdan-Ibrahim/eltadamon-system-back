@@ -1,5 +1,5 @@
 import PptxGenJS from "pptxgenjs";
-import { Types } from "mongoose";
+import { Error, Types } from "mongoose";
 
 import { asyncWrapperMiddleware } from "../middleware/asyncWrapperMiddleware.js";
 import { DailyOrder } from "../models/DailyOrder.js";
@@ -10,13 +10,11 @@ import { getAllModels } from "../util/crudModels/getAllModels.js";
 import { getModel } from "../util/crudModels/getModel.js";
 import { updateModel } from "../util/crudModels/updateModel.js";
 import { foundError, notFoundError } from "../util/ErrorsMessages.js";
-import { getDaysInMonth } from "../util/functions.js";
 import { createCollection } from "../util/crudModels/createCollection.js";
 import { Roles } from "../util/Roles.js";
-import path from "path";
-import { DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { deleteStorageImages } from "../util/deleteStorageImages.js";
 import { getImageUrl } from "../util/getImageUrl.js";
+import { ApprovalStatus } from "../util/StatusOrder.js";
 
 const Model = DailyOrder
 const ModelName = "الطلب اليومي"
@@ -79,6 +77,7 @@ const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
         well: 1,
         operator: 1,
         RequiredCapacity: 1,
+        ApprovalStatus: 1,
         replyPrice: 1,
         driverTrip: 1,
         status: 1,
@@ -143,6 +142,10 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
     }
     const orders = await getDailyOrdersByProjectID(req, res, aggregateProject)
     const total = orders.length;
+
+    if (total < 1) {
+        throw new Error("لايوجد طلبات")
+    }
 
     const pptx = new PptxGenJS();
     const TextPropsOptions = {
@@ -332,19 +335,21 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
     const userId = req.user._id;
     const userRole = req.user.role;
     const date = new Date(req.query.sendingDate);
+    const orderID = req.query.orderID
 
     let start = new Date(date);
     start.setHours(0, 0, 0, 0);
     let end = new Date(date);
     end.setHours(23, 59, 59, 999);
 
-    const matchStage = {}
+    const matchStage = {
+        ...(orderID && { _id: new Types.ObjectId(orderID) })
+    }
 
     const year = new Date(date).getFullYear()
     const month = new Date(date).getMonth()
-    const numDays = getDaysInMonth(new Date(date).getFullYear(), month)
 
-    if (req.query.school) {
+    if (req.query.school && !orderID) {
         start = new Date(year, month, 1);
         end = new Date(year, month + 1, 1);
 
@@ -358,6 +363,7 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
 
     if (req.query.projectId) {
         matchStage.status = "منفذ";
+        matchStage.ApprovalStatus = ApprovalStatus.APPROVED;
     }
 
     if (userRole === Roles.SUPERVISOR) {

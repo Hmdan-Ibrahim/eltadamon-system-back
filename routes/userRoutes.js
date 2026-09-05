@@ -10,15 +10,13 @@ const userRoutes = Router();
 userRoutes.post("/auth/login", login)
 userRoutes.use(protect)
 userRoutes.post("/auth/logout", logout)
-userRoutes.patch("/auth/change/userData/:id", restrictTo(Roles.MANAGER), updateUser)
+userRoutes.patch("/auth/change/userData/:id", restrictTo(Roles.ADMIN), updateUser)
 userRoutes.route("/")
     .get(getAllUsers)
-    // .get(getAllUsers)
-    .post(restrictTo(Roles.MANAGER), createUser)
+    .post(restrictTo(Roles.ADMIN), createUser)
 
 userRoutes.route("/:id").get(getUser)
-    // .patch(updateUserValidator, updateUser)
-    // .patch(protect, restrictTo(Roles.MANAGER), updateUser)
-    .delete(restrictTo(Roles.MANAGER), deleteUser);
+    .patch(restrictTo(Roles.ADMIN), updateUser)
+    .delete(restrictTo(Roles.ADMIN), deleteUser);
 
 export default userRoutes;

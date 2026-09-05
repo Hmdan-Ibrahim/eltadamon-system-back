@@ -5,14 +5,14 @@ import { restrictTo } from '../middleware/restrictTo.js';
 import { Roles } from '../util/Roles.js';
 
 const regionRoutes = Router();
-regionRoutes.use(protect, restrictTo(Roles.MANAGER))
+regionRoutes.use(protect)
+regionRoutes.get('/count', restrictTo(Roles.ADMIN, Roles.MANAGER), getCountRegionDocs)
 regionRoutes.route('/')
-    .post(createRegion)
-    .get(getAllRegions);
-regionRoutes.get('/count', getCountRegionDocs)
+    .post(restrictTo(Roles.ADMIN), createRegion)
+    .get(restrictTo(Roles.ADMIN, Roles.MANAGER), getAllRegions);
 regionRoutes.route('/:id')
-    .get(restrictTo(Roles.REGION_MANAGER), getRegion)
-    .patch(updateRegion)
-    .delete(deleteRegion);
+    .get(restrictTo(Roles.ADMIN, Roles.MANAGER, Roles.REGION_MANAGER), getRegion)
+    .patch(restrictTo(Roles.ADMIN), updateRegion)
+    .delete(restrictTo(Roles.ADMIN), deleteRegion);
 
 export default regionRoutes;

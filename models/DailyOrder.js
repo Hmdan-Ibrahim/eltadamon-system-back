@@ -3,7 +3,7 @@ import Operators from "../util/Operators.js";
 import { Vehicle } from "./Vehicle.js";
 import { Well } from "./Well.js";
 import { User } from "./User.js";
-import { StatusOrder } from "../util/StatusOrder.js";
+import { ApprovalStatus, StatusOrder } from "../util/StatusOrder.js";
 
 const DailyOrderSchema = new Schema({
     school: {
@@ -69,6 +69,11 @@ const DailyOrderSchema = new Schema({
         type: Date,
         required: [true, "حدد موعد الارسال!"],
     },
+    ApprovalStatus: {
+        type: String,
+        enum: Object.values(ApprovalStatus),
+        default: ApprovalStatus.UNDER_REVIEW
+    },
     buildingImage: {
         type: String,
         required: [function () {
@@ -116,7 +121,7 @@ DailyOrderSchema.pre("save", async function (next) {
     }
 });
 
-DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAndUpdate)/i, async function (next) {
+DailyOrderSchema.pre(/^(updateOne|findOneAndUpdate|findByIdAndUpdate)/i, async function (next) {
     try {
         const update = this.getUpdate();
         const query = this.getQuery();
@@ -129,9 +134,6 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
         const newTransporter = update.transporter || update.$set?.transporter || currentDoc.transporter;
         const newWellId = update.well || update.$set?.well || currentDoc.well;
         const newOrderType = update.orderType || update.$set?.orderType || currentDoc.orderType;
-
-        console.log({ update, newVehicleId, newOperator, newWellId, newOrderType });
-
 
         if (newVehicleId) {
             const vehicle = await Vehicle.findById(newVehicleId);
@@ -165,11 +167,13 @@ DailyOrderSchema.pre(/^(update|updateOne|updateMany|findOneAndUpdate|findByIdAnd
             }
         }
 
-        if (newOperator === Operators.contractor) {
+        if ([Operators.contractor, Operators.purchases].includes(newOperator)) {
             update.$unset = {
                 ...(update.$unset || {}),
                 vehicle: "",
-                well: ""
+                well: "",
+                driverTrip: "",
+                ...(newOperator === Operators.purchases && { transporter: "" })
             }
         }
 
