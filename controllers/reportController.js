@@ -29,7 +29,7 @@ export async function gitReports(req, res) {
 
 
   let firstMatch = {
-    sendingDate: { $gte: start, $lte: end },
+    sendingDate: { $gte: start, $lt: end },
     orderType: ordersType,
     status: StatusOrder,
     ApprovalStatus: ApprovalStatus.APPROVED,
@@ -66,7 +66,7 @@ export async function gitReports(req, res) {
         _id: {
           groupBy: groupField,
           RequiredCapacity: isGroupByTransporter ? "$RequiredCapacity" : "$$REMOVE",
-          day: { $dateToString: { format: "%Y-%m-%d", date: "$sendingDate" } },
+          day: { $dateToString: { format: "%Y-%m-%d", date: "$sendingDate", timezone: "Asia/Riyadh" } },
 
           operator: isGroupByTransporter ? "$operator" : "$$REMOVE",
           vehicle: isGroupByTransporter ? "$vehicle" : "$$REMOVE",
