@@ -86,6 +86,13 @@ const getDailyOrdersByProject = asyncWrapperMiddleware(async (req, res) => {
         executionTime: 1,
         buildingImage: 1,
         images: 1,
+        video: {
+            $cond: [
+                { $eq: [{ $type: "$video" }, "string"] },
+                "$video",
+                null
+            ]
+        },
         notes: 1
     }
     const dailyOrders = await getDailyOrdersByProjectID(req, res, aggregateProject)
@@ -114,6 +121,12 @@ const updateDailyOrder = updateModel(Model, ModelName, notFoundError(ModelName),
             ...(oldDoc.images || [])
         );
     }
+    if (
+        updates?.video && oldDoc?.video &&
+        updates?.video !== oldDoc?.video
+    ) {
+        imagesToDelete.push(oldDoc.video);
+    }
     await deleteStorageImages(imagesToDelete);
 })
 
@@ -122,7 +135,8 @@ const deleteDailyOrder = deleteModel(Model, ModelName, notFoundError(ModelName),
         ...(model.images || []),
         ...(model.buildingImage
             ? [model.buildingImage]
-            : [])
+            : []),
+        ...(model.video ? [model.video] : []),
     ];
     await deleteStorageImages(images);
 })

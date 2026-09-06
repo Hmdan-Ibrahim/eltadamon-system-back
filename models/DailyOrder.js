@@ -77,15 +77,21 @@ const DailyOrderSchema = new Schema({
     buildingImage: {
         type: String,
         required: [function () {
-            return this.status === StatusOrder.IMPLEMENTED;
-        }, "صورة المبنى مطلوبة عند التنفيذ"]
+            return (this.status === StatusOrder.IMPLEMENTED && !this.video);
+        }, "صورة المبنى مطلوبة عند التنفيذ إذا لم يوجد فيديو"]
     },
 
     images: {
         type: [String],
         required: [function () {
-            return this.status === StatusOrder.IMPLEMENTED;
-        }, "صور التنفيذ مطلوبة عند التنفيذ"]
+            return (this.status === StatusOrder.IMPLEMENTED && !this.video);
+        }, "صور التنفيذ مطلوبة عند التنفيذ إذا لم يوجد فيديو"]
+    },
+    video: {
+        type: String,
+        required: [function () {
+            return (this.status === StatusOrder.IMPLEMENTED && !this.images);
+        }, "فيديو التنفيذ مطلوبة عند التنفيذ مطلوب إذا لم يوجد صور"]
     },
     executionTime: Date,
     notes: String
@@ -93,6 +99,36 @@ const DailyOrderSchema = new Schema({
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+});
+
+DailyOrderSchema.pre("validate", function (next) {
+
+    if (this.status === StatusOrder.IMPLEMENTED) {
+
+        const hasImages =
+            Array.isArray(this.images) &&
+            this.images.length > 0;
+
+        const hasVideo = this.video;
+
+        console.log({
+            hasImages,
+            hasVideo,
+            images: this.images,
+            video: this.video
+        });
+
+
+        if (!hasImages && !hasVideo) {
+            return next({
+                statusCode: 400,
+                status: "failed",
+                message: "يجب إضافة صور التنفيذ أو فيديو التنفيذ عند تنفيذ الطلب"
+            });
+        }
+    }
+
+    next();
 });
 
 DailyOrderSchema.pre("save", async function (next) {
@@ -107,8 +143,10 @@ DailyOrderSchema.pre("save", async function (next) {
         if (this.operator === Operators.altadhamun) {
             const well = await Well.findById(this.well);
             if (!well) throw new Error("التحلية غير موجود");
+            console.log(well);
+
             if (well?.pricePerUnit) this.replyPrice = this.RequiredCapacity * well.pricePerUnit;
-            if (!this.replyPrice) return next({ statusCode: 401, status: "fiald", message: "سعر الرد مطلوب!" });
+            if (!this.replyPrice && well.name != "رد مقسوم") return next({ statusCode: 401, status: "fiald", message: "سعر الرد مطلوب!" });
 
             if (!this.driverTrip) {
                 const driver = await User.findById(this.transporter);
@@ -135,6 +173,7 @@ DailyOrderSchema.pre(/^(updateOne|findOneAndUpdate|findByIdAndUpdate)/i, async f
         const newTransporter = update.transporter || update.$set?.transporter || currentDoc.transporter;
         const newWellId = update.well || update.$set?.well || currentDoc.well;
         const newOrderType = update.orderType || update.$set?.orderType || currentDoc.orderType;
+        const newstatus = update.status || update.$set?.status || currentDoc.status;
 
         if (newVehicleId) {
             const vehicle = await Vehicle.findById(newVehicleId);
@@ -142,6 +181,10 @@ DailyOrderSchema.pre(/^(updateOne|findOneAndUpdate|findByIdAndUpdate)/i, async f
                 const newCapacity = vehicle.capacity;
                 update.RequiredCapacity = newCapacity;
             }
+        }
+
+        if (newstatus == StatusOrder.NOT_IMPLEMENTED) {
+            update.ApprovalStatus = ApprovalStatus.UNDER_REVIEW
         }
 
         if (newOperator === Operators.altadhamun && newOrderType === "توريد") {

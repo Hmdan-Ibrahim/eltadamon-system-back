@@ -6,7 +6,7 @@ import { protect } from "../middleware/protect.js";
 
 const wellRoutes = Router();
 
-// wellRoutes.use(protect);
+wellRoutes.use(protect);
 
 wellRoutes.route("/")
     .get(getAllWells)

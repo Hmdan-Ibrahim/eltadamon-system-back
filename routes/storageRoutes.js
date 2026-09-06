@@ -1,5 +1,5 @@
 import express from "express";
-import { createUploadUrl, deleteManyImages } from "../controllers/storageController.js";
+import { createUploadUrl, deleteManyStorageFiles } from "../controllers/storageController.js";
 import { protect } from "../middleware/protect.js";
 
 
@@ -11,7 +11,7 @@ storageRoutes.post(
 );
 
 storageRoutes.post(
-    "/delete-many", deleteManyImages
+    "/delete-many", deleteManyStorageFiles
 );
 
 export default storageRoutes;

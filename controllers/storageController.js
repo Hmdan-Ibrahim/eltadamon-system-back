@@ -8,8 +8,20 @@ const createUploadUrl = asyncWrapperMiddleware(async (req, res, next) => {
     const {
         projectId,
         sendingDate,
-        contentType
+        contentType,
+        fileSize
     } = req.body;
+
+
+    // const maxVideoSize = 10 * 1024 * 1024;
+
+    // if (fileSize > maxVideoSize) {
+    //     return next({
+    //         statusCode: 400,
+    //         status: "error",
+    //         message: "حجم الفيديو يجب ألا يتجاوز 10 ميجابايت"
+    //     });
+    // }
 
     const date = new Date(sendingDate);
     const year = date.getFullYear();
@@ -17,8 +29,15 @@ const createUploadUrl = asyncWrapperMiddleware(async (req, res, next) => {
     const day = String(date.getDate()).padStart(2, "0");
     const extension = contentType.split("/")[1];
 
+    const folder = contentType.startsWith("video")
+        ? "videos"
+        : "images";
+
+    console.log({ projectId, fileSize });
+
+
     const key =
-        `${projectId}/${year}/${month}/${day}/${randomUUID()}.${extension}`;
+        `${projectId}/${folder}/${year}/${month}/${day}/${randomUUID()}.${extension}`;
 
     const uploadUrl = await createUploadUrlService(key, contentType)
 
@@ -33,7 +52,7 @@ const createUploadUrl = asyncWrapperMiddleware(async (req, res, next) => {
 
 })
 
-const deleteManyImages = asyncWrapperMiddleware(async (req, res, next) => {
+const deleteManyStorageFiles = asyncWrapperMiddleware(async (req, res, next) => {
     const { keys } = req.body;
     if (!Array.isArray(keys) || !keys.length)
         return next({ statusCode: 400, status: "error", message: "المفتاح مطلوب" });
@@ -46,5 +65,5 @@ const deleteManyImages = asyncWrapperMiddleware(async (req, res, next) => {
 
 export {
     createUploadUrl,
-    deleteManyImages
+    deleteManyStorageFiles
 }
