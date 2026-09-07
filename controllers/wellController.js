@@ -20,7 +20,18 @@ const createWell = createModel((req) => {
     }
 })
 
-const getAllWells = getAllModels(Model, "الآبار")
+const getAllWells = getAllModels(Model, "الآبار", undefined,
+    (req) => {
+        const project = req.query.project || req.user.project;
+
+        if (!project) return {};
+        return {
+            $or: [
+                { project: { $exists: false } },
+                { project }
+            ]
+        };
+    }, ["project"])
 const getWell = getModel(Model, ModelName, notFoundError2(ModelName))
 const updateWell = updateModel(Model, ModelName, notFoundError2(ModelName))
 const deleteWell = deleteModel(Model, ModelName, notFoundError2(ModelName))

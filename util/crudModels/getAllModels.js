@@ -5,11 +5,14 @@ import { SuccessGetMessage } from "../SuccessMessages.js";
 import { filter } from "../apiFeatures/filter.js";
 import { paginate } from "../apiFeatures/paginate.js";
 
-export const getAllModels = (Model, ModelsName, populates) => {
+export const getAllModels = (Model, ModelsName, populates, customFilter, customExcludedFields = []) => {
     return asyncWrapperMiddleware(async (req, res) => {
         const { page, limit } = { ...req.query }
+        const extraFilter = customFilter
+            ? customFilter(req)
+            : {};
 
-        let query = filter(Model, req.query)
+        let query = filter(Model, req.query, extraFilter, customExcludedFields)
         if (populates) query = convertPopulates(query, populates)
         // query = paginate(query, page, limit)
 
