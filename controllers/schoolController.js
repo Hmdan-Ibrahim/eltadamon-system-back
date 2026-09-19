@@ -13,10 +13,10 @@ const Model = School
 const ModelName = "المدرسة"
 const populates = {
     path: "project",
-    select: "name",           
+    select: "name",
     populate: {
         path: "region",
-        select: "name",           
+        select: "name",
     },
     path: "supervisor",
     select: "name"

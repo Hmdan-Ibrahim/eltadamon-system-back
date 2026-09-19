@@ -17,9 +17,13 @@ const SchoolSchema = new Schema({
   },
   district: String,
   neighborhood: String,
+  sex: {
+    type: String, enum: ["بنين", "بنات"],
+    //  required: [true, "حقل الجنس مطلوب"] 
+  },
   ministerialNumber: {
     type: String,
-    required: [true, "لابد من وجود الرقم الوزاري!"],
+    // required: [true, "لابد من وجود الرقم الوزاري!"],
     unique: [true, "هذه الرقم موجود بالفعل!"]
   },
   gps: {
