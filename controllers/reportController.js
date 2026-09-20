@@ -129,6 +129,50 @@ export async function gitReports(req, res) {
       }
     },
     { $unwind: "$schoolInfo" },
+    ...(!isGroupByTransporter
+      ? [
+        {
+          $lookup: {
+            from: "schoolquotas",
+            let: {
+              schoolId: "$school"
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      {
+                        $eq: ["$school", "$$schoolId"]
+                      },
+                      {
+                        $lte: ["$startDate", end]
+                      },
+                      {
+                        $gte: ["$endDate", start]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                $project: {
+                  _id: 1,
+                  monthlyQuantity: 1,
+                  startDate: 1,
+                  endDate: 1
+                }
+              }
+            ],
+            as: "schoolQuota"
+          }
+        },
+        {
+          $unwind: {
+            path: "$schoolQuota",
+            preserveNullAndEmptyArrays: true
+          }
+        },] : []),
     {
       $lookup: {
         from: "users",
@@ -189,7 +233,27 @@ export async function gitReports(req, res) {
           },
           ContractPricePerTon: { $literal: ContractPricePerTon }
         }),
-        ...(!isGroupByTransporter && { school: "$schoolInfo" }),
+        ...(!isGroupByTransporter && {
+          school: "$schoolInfo",
+          monthlyQuantity: {
+            $ifNull: [
+              "$schoolQuota.monthlyQuantity",
+              0,
+            ],
+          },
+          remainingQuantity: {
+            $subtract: [
+              {
+                $ifNull: [
+                  "$schoolQuota.monthlyQuantity",
+                  0,
+                ],
+              },
+
+              "$monthlyCapacity",
+            ],
+          },
+        }),
         detailsOfDays: 1,
         monthlyOrders: 1,
         totalCapacity: isGroupByTransporter ? { $multiply: ["$monthlyOrders", "$_id.RequiredCapacity"] } : "$monthlyCapacity",
