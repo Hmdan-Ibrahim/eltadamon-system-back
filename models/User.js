@@ -74,6 +74,8 @@ const UserSchema = new Schema({
   isLogining: Boolean
 }, { timestamps: true });
 
+UserSchema.index({ project: 1, role: 1 });
+
 UserSchema.pre("save", async function (next) {
 
   if (this.region) {

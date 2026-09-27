@@ -21,4 +21,6 @@ const VehicleSchema = new Schema({
   }
 }, { timestamps: true });
 
+VehicleSchema.index({ project: 1, capacity: 1 });
+
 export const Vehicle = model('Vehicle', VehicleSchema)

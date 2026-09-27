@@ -27,4 +27,10 @@ const SchoolQuotaSchema = new Schema(
     { timestamps: true }
 );
 
+SchoolQuotaSchema.index({
+    school: 1,
+    startDate: 1,
+    endDate: 1
+});
+
 export const SchoolQuota = model('SchoolQuota', SchoolQuotaSchema);

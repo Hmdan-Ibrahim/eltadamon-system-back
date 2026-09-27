@@ -47,7 +47,7 @@ export const updateApprovalStatus = asyncWrapperMiddleware(async (req, res, next
 
     if (
         [ApprovalStatus.APPROVED, ApprovalStatus.REJCTED]
-            .includes(order.ApprovalStatus)
+            .includes(order.ApprovalStatus) && req.user.role != Roles.ADMIN
     ) {
         return next({
             statusCode: 400,
@@ -59,6 +59,7 @@ export const updateApprovalStatus = asyncWrapperMiddleware(async (req, res, next
     const { ApprovalStatus: newStatus } = req.body;
     if (
         ![
+            ApprovalStatus.UNDER_REVIEW,
             ApprovalStatus.APPROVED,
             ApprovalStatus.REJCTED
         ].includes(newStatus)
@@ -77,6 +78,6 @@ export const updateApprovalStatus = asyncWrapperMiddleware(async (req, res, next
         status: "success", statusCode: 203, message:
             newStatus === ApprovalStatus.APPROVED
                 ? "تم اعتماد الطلب بنجاح"
-                : "تم رفض الطلب بنجاح",
+                : newStatus === ApprovalStatus.UNDER_REVIEW ? "تم تحديث حالة الطلب الى قيد المراجعة بنجاح" : "تم رفض الطلب بنجاح",
     });
 });

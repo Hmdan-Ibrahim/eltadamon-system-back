@@ -4,11 +4,12 @@ import { getDaysInMonth } from "../util/functions.js";
 import { ApprovalStatus, StatusOrder as status } from "../util/StatusOrder.js";
 import { SuccessGetMessage } from "../util/SuccessMessages.js";
 import { Roles } from "../util/Roles.js";
+import { asyncWrapperMiddleware } from "../middleware/asyncWrapperMiddleware.js";
 
 const Model = DailyOrder
 
-export async function gitReports(req, res) {
-  const { project, groupBy = "transporter", sendingDate, ordersType, StatusOrder = status.IMPLEMENTED } = req.query
+export const gitReports = asyncWrapperMiddleware(async function (req, res) {
+  const { project, groupBy = "transporter", sendingDate, ordersType, StatusOrder, approvalStatus } = req.query
   const projectId = new mongoose.Types.ObjectId(project);
   const userId = req.user._id;
   const userRole = req.user.role;
@@ -31,8 +32,8 @@ export async function gitReports(req, res) {
   let firstMatch = {
     sendingDate: { $gte: start, $lt: end },
     orderType: ordersType,
-    status: StatusOrder,
-    ApprovalStatus: ApprovalStatus.APPROVED,
+    status: StatusOrder || status.IMPLEMENTED,
+    ApprovalStatus: approvalStatus || ApprovalStatus.APPROVED,
     ...(userRole === Roles.SUPERVISOR && { supervisor: userId }),
     ...(userRole === Roles.DRIVER && { transporter: userId })
   }
@@ -117,97 +118,98 @@ export async function gitReports(req, res) {
         transporter: { $first: "$transporter" }
       }
     },
-    {
-      $lookup: {
-        from: "schools",
-        localField: "school",
-        foreignField: "_id",
-        pipeline: [
-          { $project: { _id: 1, name: 1, ministerialNumber: 1 } },
-        ],
-        as: "schoolInfo"
-      }
-    },
-    { $unwind: "$schoolInfo" },
-    ...(!isGroupByTransporter
-      ? [
-        {
-          $lookup: {
-            from: "schoolquotas",
-            let: {
-              schoolId: "$school"
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      {
-                        $eq: ["$school", "$$schoolId"]
-                      },
-                      {
-                        $lte: ["$startDate", end]
-                      },
-                      {
-                        $gte: ["$endDate", start]
-                      }
-                    ]
-                  }
-                }
-              },
-              {
-                $project: {
-                  _id: 1,
-                  monthlyQuantity: 1,
-                  startDate: 1,
-                  endDate: 1
+    ...(!isGroupByTransporter ? [
+      {
+        $lookup: {
+          from: "schools",
+          localField: "school",
+          foreignField: "_id",
+          pipeline: [
+            { $project: { _id: 1, name: 1, ministerialNumber: 1 } },
+          ],
+          as: "schoolInfo"
+        }
+      },
+      { $unwind: "$schoolInfo" }] : []),
+    ...(!isGroupByTransporter ? [
+      {
+        $lookup: {
+          from: "schoolquotas",
+          let: {
+            schoolId: "$school"
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    {
+                      $eq: ["$school", "$$schoolId"]
+                    },
+                    {
+                      $lte: ["$startDate", end]
+                    },
+                    {
+                      $gte: ["$endDate", start]
+                    }
+                  ]
                 }
               }
-            ],
-            as: "schoolQuota"
-          }
-        },
-        {
-          $unwind: {
-            path: "$schoolQuota",
-            preserveNullAndEmptyArrays: true
-          }
-        },] : []),
-    {
-      $lookup: {
-        from: "users",
-        localField: "transporter",
-        foreignField: "_id",
-        pipeline: [
-          { $project: { _id: 1, name: 1, accountNumber: 1, accountName: 1, trip: 1 } },
-        ],
-        as: "transporterInfo"
-      }
-    }, { $unwind: { path: "$transporterInfo", preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
-        from: "vehicles",
-        localField: "_id.vehicle",
-        foreignField: "_id",
-        pipeline: [
-          { $project: { _id: 1, plateNumber: 1 } },
-        ],
-        as: "vehicleInfo"
-      }
-    },
-    { $unwind: { path: "$vehicleInfo", preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
-        from: "wells",
-        localField: "_id.well",
-        foreignField: "_id",
-        pipeline: [
-          { $project: { _id: 1, name: 1 } },
-        ],
-        as: "wellInfo"
-      }
-    },
-    { $unwind: { path: "$wellInfo", preserveNullAndEmptyArrays: true } },
+            },
+            {
+              $project: {
+                _id: 1,
+                monthlyQuantity: 1,
+                startDate: 1,
+                endDate: 1
+              }
+            }
+          ],
+          as: "schoolQuota"
+        }
+      },
+      {
+        $unwind: {
+          path: "$schoolQuota",
+          preserveNullAndEmptyArrays: true
+        }
+      },] : []),
+    ...(isGroupByTransporter ? [
+      {
+        $lookup: {
+          from: "users",
+          localField: "transporter",
+          foreignField: "_id",
+          pipeline: [
+            { $project: { _id: 1, name: 1, accountNumber: 1, accountName: 1, trip: 1 } },
+          ],
+          as: "transporterInfo"
+        }
+      }, { $unwind: { path: "$transporterInfo", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "vehicles",
+          localField: "_id.vehicle",
+          foreignField: "_id",
+          pipeline: [
+            { $project: { _id: 1, plateNumber: 1 } },
+          ],
+          as: "vehicleInfo"
+        }
+      },
+      { $unwind: { path: "$vehicleInfo", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "wells",
+          localField: "_id.well",
+          foreignField: "_id",
+          pipeline: [
+            { $project: { _id: 1, name: 1 } },
+          ],
+          as: "wellInfo"
+        }
+      },
+      { $unwind: { path: "$wellInfo", preserveNullAndEmptyArrays: true } },] : []),
     {
       $project: {
         _id: 1,
@@ -294,4 +296,4 @@ export async function gitReports(req, res) {
     result: reports[0]?.reports?.length || 0,
     data: reports[0] || {}
   });
-}
+})

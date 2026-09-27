@@ -18,5 +18,5 @@ const ProjectSchema = new Schema({
   }
 }, { timestamps: true });
 
+ProjectSchema.index({ region: 1 });
 export const Project = model('Project', ProjectSchema);
-//_server.  _connectionKey: '6::::5000',

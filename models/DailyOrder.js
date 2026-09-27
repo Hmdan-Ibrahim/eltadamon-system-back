@@ -25,7 +25,7 @@ const DailyOrderSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: [function () {
-            return this.operator !== Operators.purchases;
+            return [Operators.contractor, Operators.altadhamun].includes(this.operator);
         }, "حدد الموصل!"]
     },
     vehicle: {
@@ -101,23 +101,20 @@ const DailyOrderSchema = new Schema({
     toObject: { virtuals: true }
 });
 
+DailyOrderSchema.index({ status: 1, ApprovalStatus: 1, orderType: 1, sendingDate: 1 });
+DailyOrderSchema.index({ supervisor: 1, status: 1, ApprovalStatus: 1, orderType: 1, sendingDate: 1 });
+DailyOrderSchema.index({ transporter: 1, status: 1, ApprovalStatus: 1, orderType: 1, sendingDate: 1, });
+DailyOrderSchema.index({ school: 1, sendingDate: 1, status: 1, ApprovalStatus: 1 });
+
 DailyOrderSchema.pre("validate", function (next) {
 
     if (this.status === StatusOrder.IMPLEMENTED) {
 
         const hasImages =
             Array.isArray(this.images) &&
-            this.images.length > 0;
+            this?.images.length > 0;
 
-        const hasVideo = this.video;
-
-        console.log({
-            hasImages,
-            hasVideo,
-            images: this.images,
-            video: this.video
-        });
-
+        const hasVideo = this?.video;
 
         if (!hasImages && !hasVideo) {
             return next({

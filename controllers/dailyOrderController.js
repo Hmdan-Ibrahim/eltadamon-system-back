@@ -450,20 +450,8 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
             {
                 $lookup: {
                     from: "vehicles",
-                    let: { id: "$vehicle" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: { $eq: ["$_id", "$$id"] },
-                            },
-                        },
-                        {
-                            $project: {
-                                _id: 1,
-                                plateNumber: 1,
-                            },
-                        },
-                    ],
+                    localField: "vehicle",
+                    foreignField: "_id",
                     as: "vehicle",
                 },
             },
@@ -481,21 +469,9 @@ const getDailyOrdersByProjectID = async (req, res, aggregateProject) => {
             {
                 $lookup: {
                     from: "wells",
-                    let: { id: "$well" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: { $eq: ["$_id", "$$id"] },
-                            },
-                        },
-                        {
-                            $project: {
-                                _id: 1,
-                                name: 1,
-                            },
-                        },
-                    ],
-                    as: "well",
+                    localField: "well",
+                    foreignField: "_id",
+                    as: "well"
                 },
             },
             {
