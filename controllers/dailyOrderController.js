@@ -216,9 +216,9 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
     };
 
     const logos = {
-        tbc: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/TBC"),
-        altadamon: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/tadamon"),
-        landSterling: await imageToBase64("https://cbewgzwgdgorzcuccqsp.supabase.co/storage/v1/object/public/logos/land-sterling")
+        tbc: await imageToBase64("https://pub-95f33468517448c889a82fa00467f4fb.r2.dev/TPC-logo.jpg"),
+        altadamon: await imageToBase64("https://pub-95f33468517448c889a82fa00467f4fb.r2.dev/tadamon-logo.png"),
+        landSterling: await imageToBase64("https://pub-95f33468517448c889a82fa00467f4fb.r2.dev/land-sterling-logo.png")
     }
 
     for (const order of orders) {
