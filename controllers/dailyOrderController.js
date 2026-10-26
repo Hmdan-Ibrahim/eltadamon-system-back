@@ -154,14 +154,13 @@ const createPowerPoint = asyncWrapperMiddleware(async function (req, res) {
         buildingImage: 1,
         images: 1,
     }
-    let orders = await getDailyOrdersByProjectID(req, res, aggregateProject)
+    const orders = await getDailyOrdersByProjectID(req, res, aggregateProject)
     const total = orders.length;
 
     if (total < 1) {
         throw new Error("لايوجد طلبات")
     }
 
-    orders = []
     const pptx = new PptxGenJS();
     const TextPropsOptions = {
         x: 6.5, y: 3.4, w: 3.27, h: 1.7,
